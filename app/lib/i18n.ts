@@ -2,7 +2,7 @@ export type Locale = "en" | "fa" | "de";
 
 export const locales: Locale[] = ["en", "fa", "de"];
 
-export const defaultLocale: Locale = "en";
+export const defaultLocale: Locale = "fa";
 
 export function isLocale(value: string): value is Locale {
   return locales.includes(value as Locale);
