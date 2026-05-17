@@ -19,6 +19,7 @@ import {
 import { useAuth } from "@/app/context/AuthContext";
 import LanguageSwitcher from "@/app/components/LanguageSwitcher";
 import { getDictionary, locales, type Locale } from "@/app/lib/i18n";
+import Logo from "./logo";
 
 function getCurrentLocale(pathname: string): Locale {
   const firstSegment = pathname.split("/")[1];
@@ -110,21 +111,12 @@ export default function Navbar() {
           dir={isRtl ? "rtl" : "ltr"}
           className="mx-auto flex h-[76px] max-w-[1488px] items-center justify-between rounded-[26px] border border-[var(--color-border)] bg-white/95 px-4 shadow-[0_10px_35px_rgba(15,23,42,0.08)] backdrop-blur-2xl md:h-[86px] md:px-6"
         >
-          <Link href={homeHref} className="group flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center text-[var(--color-primary)] transition group-hover:scale-105 md:h-12 md:w-12">
-              <Home size={38} strokeWidth={2.2} />
-            </div>
-
-            <div className="leading-tight">
-              <p className="text-[18px] font-black tracking-[-0.04em] text-[var(--color-text)] md:text-[22px]">
-                {isAdminRoute ? "HomeRent Admin" : t.common.siteName}
-              </p>
-
-              <p className="hidden text-xs font-semibold text-[var(--color-muted)] sm:block">
-                {isAdminRoute ? "Manage listings" : t.nav.tagline}
-              </p>
-            </div>
-          </Link>
+          <Logo
+            homeHref={homeHref}
+            isAdminRoute={isAdminRoute}
+            siteName={t.common.siteName}
+            tagline={t.nav.tagline}
+          />
 
           <nav className="hidden items-center gap-8 lg:flex">
             {!isAdminRoute && (
