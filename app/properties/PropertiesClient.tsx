@@ -13,7 +13,7 @@ import {
 
 import PropertyCard from "../components/PropertyCard";
 import { PropertiesGridSkeleton } from "../components/Skeletons";
-import { getProperties } from "../lib/propertyService";
+import { getPublicProperties } from "../lib/propertyService";
 import type { ListingType, Property, PropertyType } from "../types/property";
 
 type SortOption = "newest" | "lowest-price" | "highest-price" | "largest-area";
@@ -57,11 +57,11 @@ export default function PropertiesClient() {
     }
 
     try {
-      const data = await getProperties({
+      const data = await getPublicProperties({
         listingType: type || undefined,
       });
 
-      setProperties(data.filter((item) => item.status === "active"));
+      setProperties(data);
       setHasLoaded(true);
     } catch (error) {
       console.error(error);
@@ -222,11 +222,11 @@ export default function PropertiesClient() {
       setLoading(true);
 
       try {
-        const data = await getProperties({
+        const data = await getPublicProperties({
           listingType: type || undefined,
         });
 
-        setProperties(data.filter((item) => item.status === "active"));
+        setProperties(data);
         setHasLoaded(true);
       } catch (error) {
         console.error(error);

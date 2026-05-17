@@ -93,3 +93,35 @@ export async function rejectProperty(id: string, note?: string) {
     "review.note": note || "",
   });
 }
+
+export async function getPublicProperties(filters?: {
+  listingType?: ListingType;
+}) {
+  const constraints = [where("status", "==", "active")];
+
+  if (filters?.listingType) {
+    constraints.push(where("listingType", "==", filters.listingType));
+  }
+
+  const q = query(propertiesRef, ...constraints);
+  const snapshot = await getDocs(q);
+
+  const properties = snapshot.docs.map((docItem) => ({
+    id: docItem.id,
+    ...docItem.data(),
+  })) as Property[];
+
+  return properties.sort((a, b) => {
+    const dateA =
+      a.createdAt && typeof a.createdAt === "object" && "seconds" in a.createdAt
+        ? Number(a.createdAt.seconds)
+        : 0;
+
+    const dateB =
+      b.createdAt && typeof b.createdAt === "object" && "seconds" in b.createdAt
+        ? Number(b.createdAt.seconds)
+        : 0;
+
+    return dateB - dateA;
+  });
+}

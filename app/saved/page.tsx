@@ -6,7 +6,7 @@ import { Heart, Search } from "lucide-react";
 
 import PropertyCard from "../components/PropertyCard";
 import { PropertiesGridSkeleton } from "../components/Skeletons";
-import { getProperties } from "../lib/propertyService";
+import { getPublicProperties } from "../lib/propertyService";
 import { getFavoriteIds } from "../lib/favorites";
 import type { Property } from "../types/property";
 
@@ -22,8 +22,8 @@ export default function SavedPropertiesPage() {
       const ids = getFavoriteIds();
       setFavoriteIds(ids);
 
-      const data = await getProperties();
-      setProperties(data.filter((item) => item.status === "active"));
+      const data = await getPublicProperties();
+      setProperties(data);
     } catch (error) {
       console.error(error);
       alert("Could not load saved properties.");
