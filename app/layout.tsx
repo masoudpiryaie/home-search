@@ -4,7 +4,7 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import Navbar from "./components/Navbar";
 import { AuthProvider } from "./context/AuthContext";
-
+import { GoogleAnalytics } from "@next/third-parties/google";
 const persianFont = localFont({
   src: [
     {
@@ -26,10 +26,17 @@ const persianFont = localFont({
   variable: "--font-persian",
   display: "swap",
 });
+const gaId = process.env.NEXT_PUBLIC_GA_ID;
+const gtmContent = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
 
 export const metadata: Metadata = {
   title: "HomeRent",
   description: "Property rental and sale platform",
+  verification: gtmContent
+    ? {
+        google: gtmContent,
+      }
+    : undefined,
 };
 
 export default function RootLayout({
@@ -46,6 +53,7 @@ export default function RootLayout({
           <Toaster position="top-center" richColors closeButton />
         </AuthProvider>
       </body>
+      {gaId ? <GoogleAnalytics gaId={gaId} /> : null}
     </html>
   );
 }
