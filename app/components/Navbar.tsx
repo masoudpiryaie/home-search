@@ -1,20 +1,23 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Building2,
   Heart,
   Home,
-  LogIn,
+  LayoutDashboard,
   LogOut,
   PlusCircle,
   Search,
+  ShieldCheck,
   User,
 } from "lucide-react";
-import { Suspense } from "react";
-import { useAuth } from "../context/AuthContext";
-import LanguageSwitcher from "./LanguageSwitcher";
-import { getDictionary, locales, type Locale } from "../lib/i18n";
+
+import { useAuth } from "@/app/context/AuthContext";
+import LanguageSwitcher from "@/app/components/LanguageSwitcher";
+import { getDictionary, locales, type Locale } from "@/app/lib/i18n";
 
 function getCurrentLocale(pathname: string): Locale {
   const firstSegment = pathname.split("/")[1];
@@ -34,6 +37,10 @@ function localizedHref(locale: Locale, href: string) {
   return `/${locale}${href}`;
 }
 
+function cn(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
+}
+
 export default function Navbar() {
   const { user, isAdmin, logout } = useAuth();
 
@@ -41,7 +48,7 @@ export default function Navbar() {
   const currentLocale = getCurrentLocale(pathname);
   const t = getDictionary(currentLocale);
 
-  const isAdminRoute = pathname.startsWith(`/${currentLocale}/admin`);
+  const isAdminRoute = pathname.startsWith("/admin");
 
   async function handleLogout() {
     try {
@@ -52,139 +59,173 @@ export default function Navbar() {
     }
   }
 
+  function isPublicActive(href: string) {
+    const fullHref = localizedHref(currentLocale, href);
+    return pathname === fullHref || pathname.startsWith(`${fullHref}/`);
+  }
+
+  function isAdminActive(href: string) {
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
+
+  const homeHref = isAdminRoute ? "/admin" : localizedHref(currentLocale, "/");
+
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-black/5 bg-white/85 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-black/5 bg-white/80 backdrop-blur-2xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6">
-          <Link
-            href={localizedHref(currentLocale, "/")}
-            className="flex items-center gap-2"
-          >
-            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-black text-white">
-              <Home size={18} />
+          <Link href={homeHref} className="group flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-black text-white shadow-sm transition group-hover:scale-105">
+              <Home size={19} />
             </div>
 
             <div className="leading-tight">
-              <p className="text-base font-bold tracking-tight text-gray-950">
-                {t.common.siteName}
+              <p className="text-base font-black tracking-tight text-gray-950">
+                {isAdminRoute ? "HomeRent Admin" : t.common.siteName}
               </p>
 
-              <p className="hidden text-xs text-gray-500 sm:block">
-                {currentLocale === "fa"
-                  ? "اجاره و خرید خانه"
-                  : currentLocale === "de"
-                    ? "Immobilien mieten & kaufen"
-                    : "Rent & buy homes"}
+              <p className="hidden text-xs font-medium text-gray-500 sm:block">
+                {isAdminRoute
+                  ? "Manage listings"
+                  : currentLocale === "fa"
+                    ? "اجاره و خرید خانه"
+                    : currentLocale === "de"
+                      ? "Immobilien mieten & kaufen"
+                      : "Rent & buy homes"}
               </p>
             </div>
           </Link>
 
-          <nav className="hidden items-center gap-2 md:flex">
-            <Link
-              href={`${localizedHref(currentLocale, "/properties")}?type=rent`}
-              className="rounded-full px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
-            >
-              {t.nav.rent}
-            </Link>
-
-            <Link
-              href={`${localizedHref(currentLocale, "/properties")}?type=sale`}
-              className="rounded-full px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
-            >
-              {t.nav.buy}
-            </Link>
-
-            <Link
-              href={localizedHref(currentLocale, "/saved")}
-              className="rounded-full px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
-            >
-              {t.nav.saved}
-            </Link>
-
-            <Link
-              href={localizedHref(currentLocale, "/submit-property")}
-              className="rounded-full px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
-            >
-              {t.nav.submitProperty}
-            </Link>
-
-            {user && (
-              <Link
-                href={localizedHref(currentLocale, "/my-listings")}
-                className="rounded-full px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
-              >
-                {t.nav.myListings}
-              </Link>
-            )}
-
-            {isAdmin && (
+          <nav className="hidden items-center gap-1 rounded-full border border-black/5 bg-gray-50/80 p-1 md:flex">
+            {!isAdminRoute && (
               <>
-                <Link
-                  href={localizedHref(currentLocale, "/admin")}
-                  className="rounded-full px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+                <DesktopNavLink
+                  href={`${localizedHref(currentLocale, "/properties")}?type=rent`}
+                  active={isPublicActive("/properties")}
                 >
-                  {t.nav.admin}
-                </Link>
+                  {t.nav.rent}
+                </DesktopNavLink>
 
-                <Link
-                  href={localizedHref(currentLocale, "/admin/inquiries")}
-                  className="rounded-full px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+                <DesktopNavLink
+                  href={`${localizedHref(currentLocale, "/properties")}?type=sale`}
+                  active={isPublicActive("/properties")}
                 >
-                  {t.nav.inquiries}
-                </Link>
+                  {t.nav.buy}
+                </DesktopNavLink>
 
-                <Link
-                  href={localizedHref(currentLocale, "/admin/properties/new")}
-                  className="rounded-full bg-black px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-800"
+                <DesktopNavLink
+                  href={localizedHref(currentLocale, "/saved")}
+                  active={isPublicActive("/saved")}
                 >
-                  {t.nav.addProperty}
-                </Link>
+                  {t.nav.saved}
+                </DesktopNavLink>
+
+                {user && (
+                  <DesktopNavLink
+                    href={localizedHref(currentLocale, "/my-listings")}
+                    active={isPublicActive("/my-listings")}
+                  >
+                    {t.nav.myListings}
+                  </DesktopNavLink>
+                )}
               </>
             )}
 
-            <Suspense fallback={null}>
-              <LanguageSwitcher />
-            </Suspense>
+            {isAdminRoute && (
+              <>
+                <DesktopNavLink href="/admin" active={pathname === "/admin"}>
+                  Dashboard
+                </DesktopNavLink>
+
+                <DesktopNavLink
+                  href="/admin/properties"
+                  active={isAdminActive("/admin/properties")}
+                >
+                  Properties
+                </DesktopNavLink>
+
+                <DesktopNavLink
+                  href="/admin/inquiries"
+                  active={isAdminActive("/admin/inquiries")}
+                >
+                  Inquiries
+                </DesktopNavLink>
+              </>
+            )}
+
+            {isAdmin && !isAdminRoute && (
+              <DesktopNavLink href="/admin" active={false}>
+                Admin
+              </DesktopNavLink>
+            )}
+          </nav>
+
+          <div className="hidden items-center gap-2 md:flex">
+            {!isAdminRoute && (
+              <Suspense fallback={null}>
+                <LanguageSwitcher />
+              </Suspense>
+            )}
+
+            {!isAdminRoute && (
+              <Link
+                href={localizedHref(currentLocale, "/submit-property")}
+                className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-800"
+              >
+                <PlusCircle size={17} />
+                {t.nav.submitProperty}
+              </Link>
+            )}
+
+            {isAdminRoute && (
+              <Link
+                href="/admin/properties/new"
+                className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-800"
+              >
+                <PlusCircle size={17} />
+                Add property
+              </Link>
+            )}
 
             {user ? (
               <button
                 type="button"
                 onClick={handleLogout}
-                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
+                className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm font-bold text-gray-800 transition hover:bg-gray-50"
               >
-                {t.nav.logout}
+                <LogOut size={17} />
+                {isAdminRoute ? "Logout" : t.nav.logout}
               </button>
             ) : (
               <Link
                 href={localizedHref(currentLocale, "/login")}
-                className="rounded-full bg-black px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-800"
+                className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm font-bold text-gray-800 transition hover:bg-gray-50"
               >
+                <User size={17} />
                 {t.nav.login}
               </Link>
             )}
-          </nav>
+          </div>
 
           <div className="flex items-center gap-2 md:hidden">
-            <Suspense fallback={null}>
-              <LanguageSwitcher />
-            </Suspense>
+            {!isAdminRoute && (
+              <Suspense fallback={null}>
+                <LanguageSwitcher />
+              </Suspense>
+            )}
 
-            {isAdmin ? (
+            {isAdminRoute ? (
               <Link
-                href={localizedHref(currentLocale, "/admin/properties/new")}
-                className="flex items-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-semibold text-white"
+                href="/admin/properties/new"
+                className="inline-flex items-center gap-2 rounded-full bg-black px-4 py-2.5 text-sm font-bold text-white shadow-sm"
               >
                 <PlusCircle size={16} />
-                {currentLocale === "fa"
-                  ? "افزودن"
-                  : currentLocale === "de"
-                    ? "Neu"
-                    : "Add"}
+                Add
               </Link>
             ) : (
               <Link
                 href={localizedHref(currentLocale, "/submit-property")}
-                className="flex items-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-semibold text-white"
+                className="inline-flex items-center gap-2 rounded-full bg-black px-4 py-2.5 text-sm font-bold text-white shadow-sm"
               >
                 <PlusCircle size={16} />
                 {currentLocale === "fa"
@@ -199,61 +240,156 @@ export default function Navbar() {
       </header>
 
       {!isAdminRoute && (
-        <nav className="mobile-safe-bottom fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white/95 px-4 py-2 backdrop-blur-xl md:hidden">
-          <div className="mx-auto grid max-w-md grid-cols-5">
-            <Link
+        <nav className="mobile-safe-bottom fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white/95 px-3 pb-2 pt-2 shadow-[0_-10px_30px_rgba(0,0,0,0.06)] backdrop-blur-2xl md:hidden">
+          <div className="mx-auto grid max-w-md grid-cols-5 items-end gap-1">
+            <MobileNavLink
               href={localizedHref(currentLocale, "/")}
-              className="flex flex-col items-center gap-1 rounded-2xl py-2 text-xs font-medium text-gray-700"
-            >
-              <Home size={20} />
-              {t.nav.home}
-            </Link>
+              active={pathname === localizedHref(currentLocale, "/")}
+              icon={<Home size={20} />}
+              label={t.nav.home}
+            />
 
-            <Link
+            <MobileNavLink
               href={`${localizedHref(currentLocale, "/properties")}?type=rent`}
-              className="flex flex-col items-center gap-1 rounded-2xl py-2 text-xs font-medium text-gray-700"
-            >
-              <Search size={20} />
-              {t.nav.rent}
-            </Link>
+              active={isPublicActive("/properties")}
+              icon={<Search size={20} />}
+              label={t.nav.rent}
+            />
 
             <Link
-              href={`${localizedHref(currentLocale, "/properties")}?type=sale`}
-              className="flex flex-col items-center gap-1 rounded-2xl py-2 text-xs font-medium text-gray-700"
+              href={localizedHref(currentLocale, "/submit-property")}
+              className="relative -mt-7 flex flex-col items-center gap-1"
             >
-              <Search size={20} />
-              {t.nav.buy}
+              <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-black text-white shadow-xl shadow-black/20">
+                <PlusCircle size={24} />
+              </div>
+              <span className="text-[11px] font-black text-gray-900">
+                {currentLocale === "fa"
+                  ? "ثبت"
+                  : currentLocale === "de"
+                    ? "Anzeige"
+                    : "Submit"}
+              </span>
             </Link>
 
-            <Link
+            <MobileNavLink
               href={localizedHref(currentLocale, "/saved")}
-              className="flex flex-col items-center gap-1 rounded-2xl py-2 text-xs font-medium text-gray-700"
-            >
-              <Heart size={20} />
-              {t.nav.saved}
-            </Link>
+              active={isPublicActive("/saved")}
+              icon={<Heart size={20} />}
+              label={t.nav.saved}
+            />
 
             {user ? (
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="flex flex-col items-center gap-1 rounded-2xl py-2 text-xs font-medium text-gray-700"
-              >
-                <LogOut size={20} />
-                {t.nav.logout}
-              </button>
+              <MobileNavLink
+                href={localizedHref(currentLocale, "/my-listings")}
+                active={isPublicActive("/my-listings")}
+                icon={<Building2 size={20} />}
+                label={
+                  currentLocale === "fa"
+                    ? "آگهی‌ها"
+                    : currentLocale === "de"
+                      ? "Meine"
+                      : "Mine"
+                }
+              />
             ) : (
-              <Link
+              <MobileNavLink
                 href={localizedHref(currentLocale, "/login")}
-                className="flex flex-col items-center gap-1 rounded-2xl py-2 text-xs font-medium text-gray-700"
-              >
-                <User size={20} />
-                {t.nav.login}
-              </Link>
+                active={isPublicActive("/login")}
+                icon={<User size={20} />}
+                label={t.nav.login}
+              />
             )}
           </div>
         </nav>
       )}
+
+      {isAdminRoute && (
+        <nav className="mobile-safe-bottom fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white/95 px-3 pb-2 pt-2 shadow-[0_-10px_30px_rgba(0,0,0,0.06)] backdrop-blur-2xl md:hidden">
+          <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
+            <MobileNavLink
+              href="/admin"
+              active={pathname === "/admin"}
+              icon={<LayoutDashboard size={20} />}
+              label="Home"
+            />
+
+            <MobileNavLink
+              href="/admin/properties"
+              active={isAdminActive("/admin/properties")}
+              icon={<Building2 size={20} />}
+              label="Listings"
+            />
+
+            <MobileNavLink
+              href="/admin/inquiries"
+              active={isAdminActive("/admin/inquiries")}
+              icon={<ShieldCheck size={20} />}
+              label="Leads"
+            />
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-bold text-gray-600 transition hover:bg-gray-50"
+            >
+              <LogOut size={20} />
+              Logout
+            </button>
+          </div>
+        </nav>
+      )}
     </>
+  );
+}
+
+function DesktopNavLink({
+  href,
+  active,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "rounded-full px-4 py-2 text-sm font-bold transition",
+        active
+          ? "bg-white text-gray-950 shadow-sm"
+          : "text-gray-600 hover:bg-white hover:text-gray-950",
+      )}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function MobileNavLink({
+  href,
+  active,
+  icon,
+  label,
+}: {
+  href: string;
+  active: boolean;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "flex flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-bold transition",
+        active
+          ? "bg-gray-950 text-white"
+          : "text-gray-600 hover:bg-gray-50 hover:text-gray-950",
+      )}
+    >
+      {icon}
+      <span className="max-w-[64px] truncate">{label}</span>
+    </Link>
   );
 }
