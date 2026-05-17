@@ -9,6 +9,8 @@ import { createProperty, updateProperty } from "../lib/propertyService";
 import { getZodErrorMessage, propertySchema } from "../lib/propertyValidation";
 import { getDictionary, type Locale } from "../lib/i18n";
 import type { Property, PropertyImage } from "../types/property";
+import { translatePropertyText } from "../lib/translateProperty";
+import { validateTextLanguage } from "../lib/languageValidation";
 
 type PropertyFormProps = {
   initialData?: Property;
@@ -85,10 +87,24 @@ export default function PropertyForm({
     const selectedListingType = formData.get("listingType") as "rent" | "sale";
     const price = Number(formData.get("price") || 0);
     const area = Number(formData.get("area") || 0);
+    const rawTitle = String(formData.get("title") || "").trim();
+    const rawDescription = String(formData.get("description") || "").trim();
+    const languageValidation = validateTextLanguage({
+      locale,
+      title: rawTitle,
+      description: rawDescription,
+    });
+
+    if (!languageValidation.valid) {
+      setErrorMessage(languageValidation.message);
+      setLoading(false);
+      return;
+    }
 
     const property: Property = {
-      title: String(formData.get("title") || "").trim(),
-      description: String(formData.get("description") || "").trim(),
+      title: rawTitle,
+      description: rawDescription,
+      originalLanguage: locale,
 
       listingType: selectedListingType,
       propertyType: formData.get("propertyType") as Property["propertyType"],
@@ -196,7 +212,15 @@ export default function PropertyForm({
         setLoading(false);
         return;
       }
+      const translatedText = await translatePropertyText({
+        sourceLanguage: locale,
+        title: rawTitle,
+        description: rawDescription,
+      });
 
+      property.title = translatedText.title;
+      property.description = translatedText.description;
+      property.originalLanguage = locale;
       const validatedProperty = propertySchema.parse(property) as Property;
 
       if (mode === "edit" && propertyId) {
@@ -335,8 +359,11 @@ export default function PropertyForm({
         <h2 className="mb-5 text-xl font-black text-gray-950">
           {t.form.images}
         </h2>
-
-        <ImageUploader images={images} onChange={setImages} />
+        <ImageUploader
+          images={images}
+          onChange={setImages}
+          locale={locale}
+        />{" "}
       </section>
 
       <section className="rounded-[2rem] bg-white p-5 shadow-sm md:p-7">
