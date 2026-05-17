@@ -13,7 +13,7 @@ import {
 import { getDictionary, type Locale } from "@/app/lib/i18n";
 import { translatePropertyText } from "@/app/lib/translateProperty";
 import { validateTextLanguage } from "@/app/lib/languageValidation";
-import type { Property, PropertyImage } from "@/app/types/property";
+import { Property, PropertyImage } from "../types/property";
 
 type PropertyFormProps = {
   initialData?: Property;
@@ -68,7 +68,15 @@ function getInitialTextValue(
     return value;
   }
 
-  return value[locale] || value.en || value.de || value.fa || "";
+  const localizedValue = value as Partial<Record<Locale, string>>;
+
+  return (
+    localizedValue[locale] ||
+    localizedValue.en ||
+    localizedValue.de ||
+    localizedValue.fa ||
+    ""
+  );
 }
 
 export default function PropertyForm({

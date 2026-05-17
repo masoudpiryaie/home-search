@@ -15,7 +15,7 @@ import {
   AdminListSkeleton,
   PropertiesGridSkeleton,
 } from "@/app/components/Skeletons";
-
+import { getLocalizedText } from "@/app/lib/localizedText";
 export default function AdminPropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
@@ -58,7 +58,7 @@ export default function AdminPropertiesPage() {
     const lowerValue = value.toLowerCase();
 
     const result = properties.filter((property) => {
-      const title = property.title?.toLowerCase() || "";
+      const title = getLocalizedText(property.title, "en").toLowerCase();
       const city = property.location?.city?.toLowerCase() || "";
       const district = property.location?.district?.toLowerCase() || "";
       const status = property.status?.toLowerCase() || "";
@@ -203,7 +203,7 @@ export default function AdminPropertiesPage() {
           <div className="grid gap-4">
             {filteredProperties.map((property) => {
               const mainImage = property.images?.[0]?.url;
-
+              const title = getLocalizedText(property.title, "en");
               return (
                 <div
                   key={property.id}
@@ -214,7 +214,7 @@ export default function AdminPropertiesPage() {
                       {mainImage ? (
                         <img
                           src={mainImage}
-                          alt={property.title}
+                          alt={title}
                           className="h-full w-full object-cover"
                         />
                       ) : (
@@ -228,7 +228,7 @@ export default function AdminPropertiesPage() {
                       <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                         <div>
                           <p className="line-clamp-1 text-base font-black text-gray-950 md:text-lg">
-                            {property.title}
+                            {title}
                           </p>
 
                           <p className="mt-1 text-sm text-gray-500">
@@ -334,15 +334,19 @@ function StatusBadge({ status }: { status: Property["status"] }) {
   const className =
     status === "active"
       ? "bg-green-50 text-green-700"
-      : status === "draft"
-        ? "bg-yellow-50 text-yellow-700"
-        : status === "inactive"
-          ? "bg-gray-100 text-gray-600"
-          : status === "rented"
-            ? "bg-blue-50 text-blue-700"
-            : status === "sold"
-              ? "bg-purple-50 text-purple-700"
-              : "bg-gray-100 text-gray-600";
+      : status === "pending"
+        ? "bg-orange-50 text-orange-700"
+        : status === "draft"
+          ? "bg-yellow-50 text-yellow-700"
+          : status === "inactive"
+            ? "bg-gray-100 text-gray-600"
+            : status === "rejected"
+              ? "bg-red-50 text-red-700"
+              : status === "rented"
+                ? "bg-blue-50 text-blue-700"
+                : status === "sold"
+                  ? "bg-purple-50 text-purple-700"
+                  : "bg-gray-100 text-gray-600";
 
   return (
     <span

@@ -18,12 +18,11 @@ import { getInquiries } from "../lib/inquiryService";
 import { AdminListSkeleton } from "../components/Skeletons";
 import type { Property } from "../types/property";
 import type { Inquiry } from "../types/inquiry";
-
+import { getLocalizedText } from "@/app/lib/localizedText";
 export default function AdminDashboardPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loading, setLoading] = useState(true);
-
   async function loadDashboardData() {
     setLoading(true);
 
@@ -233,7 +232,7 @@ function StatCard({
 
 function PropertyRow({ property }: { property: Property }) {
   const image = property.images?.[0]?.url;
-
+  const title = getLocalizedText(property.title, "en");
   return (
     <Link
       href={`/admin/properties/${property.id}/edit`}
@@ -241,11 +240,7 @@ function PropertyRow({ property }: { property: Property }) {
     >
       <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-white">
         {image ? (
-          <img
-            src={image}
-            alt={property.title}
-            className="h-full w-full object-cover"
-          />
+          <img src={image} alt={title} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-gray-400">
             No image
@@ -254,9 +249,7 @@ function PropertyRow({ property }: { property: Property }) {
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-black text-gray-950">
-          {property.title}
-        </p>
+        <p className="truncate text-sm font-black text-gray-950">{title}</p>
 
         <p className="mt-1 truncate text-xs text-gray-500">
           {property.location?.city}

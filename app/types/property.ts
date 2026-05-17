@@ -24,8 +24,9 @@ export type PropertyImage = {
 
 export type Property = {
   id?: string;
-  title: string;
-  description: string;
+  title: string | LocalizedText;
+  description: string | LocalizedText;
+  originalLanguage?: Locale;
 
   listingType: ListingType;
   propertyType: PropertyType;
