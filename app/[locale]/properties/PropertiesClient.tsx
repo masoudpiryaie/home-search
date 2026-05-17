@@ -1,4 +1,3 @@
-"useclient";
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -11,17 +10,24 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 
-import PropertyCard from "../components/PropertyCard";
-import { PropertiesGridSkeleton } from "../components/Skeletons";
-import { getPublicProperties } from "../lib/propertyService";
-import type { ListingType, Property, PropertyType } from "../types/property";
+import PropertyCard from "@/app/components/PropertyCard";
+import { PropertiesGridSkeleton } from "@/app/components/Skeletons";
+import { getPublicProperties } from "@/app/lib/propertyService";
+import { getDictionary, type Locale } from "@/app/lib/i18n";
+import type { ListingType, Property, PropertyType } from "@/app/types/property";
 
 type SortOption = "newest" | "lowest-price" | "highest-price" | "largest-area";
 
-export default function PropertiesClient() {
+type PropertiesClientProps = {
+  locale: Locale;
+};
+
+export default function PropertiesClient({ locale }: PropertiesClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  const t = getDictionary(locale);
 
   const type = searchParams.get("type") as ListingType | null;
 
@@ -37,7 +43,6 @@ export default function PropertiesClient() {
 
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasLoaded, setHasLoaded] = useState(false);
 
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
@@ -50,26 +55,6 @@ export default function PropertiesClient() {
     propertyTypeFromUrl,
   );
   const [sort, setSort] = useState<SortOption>(sortFromUrl);
-
-  async function loadProperties() {
-    if (!hasLoaded) {
-      setLoading(true);
-    }
-
-    try {
-      const data = await getPublicProperties({
-        listingType: type || undefined,
-      });
-
-      setProperties(data);
-      setHasLoaded(true);
-    } catch (error) {
-      console.error(error);
-      alert("Could not load properties.");
-    } finally {
-      setLoading(false);
-    }
-  }
 
   function updateUrl(nextValues?: {
     city?: string;
@@ -118,7 +103,6 @@ export default function PropertiesClient() {
     setSort("newest");
 
     const params = new URLSearchParams();
-
     params.set("type", type || "rent");
 
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
@@ -227,17 +211,24 @@ export default function PropertiesClient() {
         });
 
         setProperties(data);
-        setHasLoaded(true);
       } catch (error) {
         console.error(error);
-        alert("Could not load properties.");
+
+        alert(
+          locale === "fa"
+            ? "امکان دریافت آگهی‌ها وجود ندارد."
+            : locale === "de"
+              ? "Immobilien konnten nicht geladen werden."
+              : "Could not load properties.",
+        );
       } finally {
         setLoading(false);
       }
     }
 
     fetchData();
-  }, [type]);
+  }, [type, locale]);
+
   useEffect(() => {
     const timeout = setTimeout(() => {
       updateUrl();
@@ -253,22 +244,37 @@ export default function PropertiesClient() {
           <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="text-sm font-medium text-white/60">
-                {type === "sale" ? "Buy your next home" : "Rent your next home"}
+                {type === "sale"
+                  ? locale === "fa"
+                    ? "خانه بعدی خود را بخرید"
+                    : locale === "de"
+                      ? "Kaufe dein nächstes Zuhause"
+                      : "Buy your next home"
+                  : locale === "fa"
+                    ? "خانه بعدی خود را اجاره کنید"
+                    : locale === "de"
+                      ? "Miete dein nächstes Zuhause"
+                      : "Rent your next home"}
               </p>
 
               <h1 className="mt-2 text-3xl font-black tracking-tight md:text-5xl">
                 {type === "sale"
-                  ? "Properties for sale"
-                  : "Properties for rent"}
+                  ? t.properties.saleTitle
+                  : t.properties.rentTitle}
               </h1>
 
               <p className="mt-3 max-w-2xl text-sm leading-6 text-white/65 md:text-base">
-                Find homes by city, price, area, rooms, and property type.
+                {type === "sale"
+                  ? t.properties.saleSubtitle
+                  : t.properties.rentSubtitle}
               </p>
             </div>
 
             <div className="rounded-[1.5rem] bg-white/10 p-4 backdrop-blur-md">
-              <p className="text-sm text-white/60">Available listings</p>
+              <p className="text-sm text-white/60">
+                {t.properties.availableListings}
+              </p>
+
               <p className="mt-1 text-3xl font-black">
                 {loading ? "..." : filteredProperties.length}
               </p>
@@ -284,7 +290,7 @@ export default function PropertiesClient() {
               <input
                 value={city}
                 onChange={(event) => setCity(event.target.value)}
-                placeholder="City, district, postcode..."
+                placeholder={t.properties.cityPlaceholder}
                 className="w-full bg-transparent text-sm text-gray-900 placeholder:text-gray-400"
               />
             </div>
@@ -302,42 +308,42 @@ export default function PropertiesClient() {
             <FilterInput
               value={minPrice}
               onChange={setMinPrice}
-              placeholder="Min price"
+              placeholder={t.properties.minPrice}
               type="number"
             />
 
             <FilterInput
               value={maxPrice}
               onChange={setMaxPrice}
-              placeholder="Max price"
+              placeholder={t.properties.maxPrice}
               type="number"
             />
 
             <FilterInput
               value={minArea}
               onChange={setMinArea}
-              placeholder="Min area"
+              placeholder={t.properties.minArea}
               type="number"
             />
 
             <FilterSelect value={rooms} onChange={setRooms}>
-              <option value="">Rooms</option>
-              <option value="1">1+ room</option>
-              <option value="2">2+ rooms</option>
-              <option value="3">3+ rooms</option>
-              <option value="4">4+ rooms</option>
-              <option value="5">5+ rooms</option>
+              <option value="">{t.properties.rooms}</option>
+              <option value="1">1+</option>
+              <option value="2">2+</option>
+              <option value="3">3+</option>
+              <option value="4">4+</option>
+              <option value="5">5+</option>
             </FilterSelect>
 
             <FilterSelect
               value={propertyType}
               onChange={(value) => setPropertyType(value as PropertyType | "")}
             >
-              <option value="">Type</option>
-              <option value="apartment">Apartment</option>
-              <option value="house">House</option>
-              <option value="studio">Studio</option>
-              <option value="room">Room</option>
+              <option value="">{t.properties.type}</option>
+              <option value="apartment">{t.form.apartment}</option>
+              <option value="house">{t.form.house}</option>
+              <option value="studio">{t.form.studio}</option>
+              <option value="room">{t.form.room}</option>
             </FilterSelect>
 
             <button
@@ -346,7 +352,7 @@ export default function PropertiesClient() {
               className="flex items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold text-gray-700 transition hover:bg-gray-50"
             >
               <RotateCcw size={16} />
-              Reset
+              {t.common.reset}
             </button>
           </div>
 
@@ -356,31 +362,31 @@ export default function PropertiesClient() {
                 <FilterInput
                   value={minPrice}
                   onChange={setMinPrice}
-                  placeholder="Min price"
+                  placeholder={t.properties.minPrice}
                   type="number"
                 />
 
                 <FilterInput
                   value={maxPrice}
                   onChange={setMaxPrice}
-                  placeholder="Max price"
+                  placeholder={t.properties.maxPrice}
                   type="number"
                 />
 
                 <FilterInput
                   value={minArea}
                   onChange={setMinArea}
-                  placeholder="Min area"
+                  placeholder={t.properties.minArea}
                   type="number"
                 />
 
                 <FilterSelect value={rooms} onChange={setRooms}>
-                  <option value="">Rooms</option>
-                  <option value="1">1+ room</option>
-                  <option value="2">2+ rooms</option>
-                  <option value="3">3+ rooms</option>
-                  <option value="4">4+ rooms</option>
-                  <option value="5">5+ rooms</option>
+                  <option value="">{t.properties.rooms}</option>
+                  <option value="1">1+</option>
+                  <option value="2">2+</option>
+                  <option value="3">3+</option>
+                  <option value="4">4+</option>
+                  <option value="5">5+</option>
                 </FilterSelect>
               </div>
 
@@ -390,11 +396,11 @@ export default function PropertiesClient() {
                   setPropertyType(value as PropertyType | "")
                 }
               >
-                <option value="">Property type</option>
-                <option value="apartment">Apartment</option>
-                <option value="house">House</option>
-                <option value="studio">Studio</option>
-                <option value="room">Room</option>
+                <option value="">{t.form.propertyType}</option>
+                <option value="apartment">{t.form.apartment}</option>
+                <option value="house">{t.form.house}</option>
+                <option value="studio">{t.form.studio}</option>
+                <option value="room">{t.form.room}</option>
               </FilterSelect>
 
               <button
@@ -403,7 +409,7 @@ export default function PropertiesClient() {
                 className="flex items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold text-gray-700"
               >
                 <RotateCcw size={16} />
-                Reset filters
+                {t.common.reset}
               </button>
             </div>
           )}
@@ -412,8 +418,8 @@ export default function PropertiesClient() {
         <div className="mb-5 flex items-center justify-between gap-3">
           <p className="text-sm font-medium text-gray-600">
             {loading
-              ? "Loading..."
-              : `${filteredProperties.length} properties found`}
+              ? t.common.loading
+              : `${filteredProperties.length} ${t.properties.propertiesFound}`}
           </p>
 
           <div className="flex items-center gap-2 rounded-full bg-white px-3 py-2 shadow-sm">
@@ -424,10 +430,10 @@ export default function PropertiesClient() {
               onChange={(event) => setSort(event.target.value as SortOption)}
               className="bg-transparent text-sm font-semibold text-gray-700"
             >
-              <option value="newest">Newest</option>
-              <option value="lowest-price">Lowest price</option>
-              <option value="highest-price">Highest price</option>
-              <option value="largest-area">Largest area</option>
+              <option value="newest">{t.properties.newest}</option>
+              <option value="lowest-price">{t.properties.lowestPrice}</option>
+              <option value="highest-price">{t.properties.highestPrice}</option>
+              <option value="largest-area">{t.properties.largestArea}</option>
             </select>
 
             <ChevronDown size={16} className="text-gray-400" />
@@ -443,11 +449,11 @@ export default function PropertiesClient() {
             </div>
 
             <p className="mt-4 text-lg font-bold text-gray-900">
-              No property found
+              {t.properties.noPropertyFound}
             </p>
 
             <p className="mt-2 text-sm text-gray-500">
-              Try another city or change your filters.
+              {t.properties.tryAnotherFilter}
             </p>
 
             <button
@@ -455,7 +461,7 @@ export default function PropertiesClient() {
               onClick={resetFilters}
               className="mt-6 rounded-2xl bg-black px-5 py-3 text-sm font-bold text-white"
             >
-              Reset filters
+              {t.common.reset}
             </button>
           </div>
         ) : (

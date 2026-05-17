@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-
+import { Toaster } from "sonner";
 import Navbar from "./components/Navbar";
 import { AuthProvider } from "./context/AuthContext";
 
@@ -20,6 +20,7 @@ export default function RootLayout({
         <AuthProvider>
           <Navbar />
           {children}
+          <Toaster position="top-center" richColors closeButton />
         </AuthProvider>
       </body>
     </html>

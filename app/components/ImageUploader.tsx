@@ -2,6 +2,8 @@
 
 import { CldUploadWidget } from "next-cloudinary";
 import { ImagePlus, Trash2 } from "lucide-react";
+
+import { getDictionary, type Locale } from "../lib/i18n";
 import type { PropertyImage } from "../types/property";
 
 type CloudinaryUploadResult = {
@@ -14,12 +16,16 @@ type CloudinaryUploadResult = {
 type ImageUploaderProps = {
   images: PropertyImage[];
   onChange: (images: PropertyImage[]) => void;
+  locale?: Locale;
 };
 
 export default function ImageUploader({
   images,
   onChange,
+  locale = "en",
 }: ImageUploaderProps) {
+  const t = getDictionary(locale);
+
   function removeImage(publicId: string) {
     onChange(images.filter((image) => image.publicId !== publicId));
   }
@@ -68,7 +74,7 @@ export default function ImageUploader({
             className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 px-5 py-8 text-sm font-black text-gray-700 transition hover:border-gray-300 hover:bg-gray-100"
           >
             <ImagePlus size={22} />
-            Upload property images
+            {t.form.uploadImages}
           </button>
         )}
       </CldUploadWidget>
@@ -76,10 +82,21 @@ export default function ImageUploader({
       {images.length > 0 && (
         <div>
           <div className="mb-3 flex items-center justify-between">
-            <p className="text-sm font-bold text-gray-700">Uploaded images</p>
+            <p className="text-sm font-bold text-gray-700">
+              {t.form.uploadedImages}
+            </p>
 
             <p className="text-xs font-medium text-gray-400">
-              {images.length} image{images.length > 1 ? "s" : ""}
+              {images.length}{" "}
+              {locale === "fa"
+                ? "عکس"
+                : locale === "de"
+                  ? images.length > 1
+                    ? "Bilder"
+                    : "Bild"
+                  : images.length > 1
+                    ? "images"
+                    : "image"}
             </p>
           </div>
 
@@ -97,7 +114,7 @@ export default function ImageUploader({
 
                 {index === 0 && (
                   <span className="absolute left-3 top-3 rounded-full bg-black/80 px-3 py-1 text-xs font-bold text-white backdrop-blur-md">
-                    Main image
+                    {t.form.mainImage}
                   </span>
                 )}
 
@@ -105,6 +122,7 @@ export default function ImageUploader({
                   type="button"
                   onClick={() => removeImage(image.publicId)}
                   className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-red-600 shadow-sm backdrop-blur-md transition hover:bg-red-50"
+                  aria-label={t.common.delete}
                 >
                   <Trash2 size={17} />
                 </button>
@@ -115,10 +133,7 @@ export default function ImageUploader({
       )}
 
       {images.length === 0 && (
-        <p className="text-sm leading-6 text-gray-500">
-          Please upload at least one clear image. The first image will be used
-          as the main image in property cards.
-        </p>
+        <p className="text-sm leading-6 text-gray-500">{t.form.imageHelp}</p>
       )}
     </div>
   );

@@ -1,15 +1,18 @@
 import { z } from "zod";
-
+const localizedTextSchema = z.union([
+  z.string(),
+  z.object({
+    en: z.string(),
+    fa: z.string(),
+    de: z.string(),
+  }),
+]);
 export const propertySchema = z.object({
-  title: z
-    .string()
-    .min(5, "Title must be at least 5 characters.")
-    .max(120, "Title is too long."),
+  title: localizedTextSchema,
 
-  description: z
-    .string()
-    .min(20, "Description must be at least 20 characters.")
-    .max(3000, "Description is too long."),
+  description: localizedTextSchema,
+
+  originalLanguage: z.enum(["en", "fa", "de"]).optional(),
 
   listingType: z.enum(["rent", "sale"]),
   propertyType: z.enum(["apartment", "house", "studio", "room"]),

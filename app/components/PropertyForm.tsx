@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import ImageUploader from "./ImageUploader";
+import { useAuth } from "../context/AuthContext";
 import { createProperty, updateProperty } from "../lib/propertyService";
 import { getZodErrorMessage, propertySchema } from "../lib/propertyValidation";
+import { getDictionary, type Locale } from "../lib/i18n";
 import type { Property, PropertyImage } from "../types/property";
 
 type PropertyFormProps = {
@@ -13,6 +15,7 @@ type PropertyFormProps = {
   propertyId?: string;
   mode?: "create" | "edit";
   submitMode?: "admin" | "public";
+  locale?: Locale;
 };
 
 const defaultFeatures = {
@@ -53,8 +56,11 @@ export default function PropertyForm({
   propertyId,
   mode = "create",
   submitMode = "admin",
+  locale = "en",
 }: PropertyFormProps) {
   const router = useRouter();
+  const { user } = useAuth();
+  const t = getDictionary(locale);
 
   const [images, setImages] = useState<PropertyImage[]>([]);
   const [listingType, setListingType] = useState<"rent" | "sale">("rent");
@@ -137,8 +143,13 @@ export default function PropertyForm({
       submittedBy:
         submitMode === "public"
           ? removeUndefinedValues({
-              name: String(formData.get("contactName") || "").trim(),
-              email: String(formData.get("contactEmail") || "").trim(),
+              uid: user?.uid,
+              name:
+                user?.displayName ||
+                String(formData.get("contactName") || "").trim(),
+              email:
+                user?.email ||
+                String(formData.get("contactEmail") || "").trim(),
             })
           : undefined,
     };
@@ -149,7 +160,8 @@ export default function PropertyForm({
         warmRent: optionalNumber(formData.get("warmRent")),
         utilities: optionalNumber(formData.get("utilities")),
         deposit: optionalNumber(formData.get("deposit")),
-        availableFrom: String(formData.get("availableFrom") || "") || undefined,
+        availableFrom:
+          String(formData.get("availableFrom") || "").trim() || undefined,
       });
     }
 
@@ -161,13 +173,31 @@ export default function PropertyForm({
     }
 
     try {
-      if (images.length === 0) {
-        setErrorMessage("Please upload at least one property image.");
+      if (submitMode === "public" && !user) {
+        setErrorMessage(
+          locale === "fa"
+            ? "برای ثبت آگهی باید وارد حساب کاربری شوید."
+            : locale === "de"
+              ? "Bitte melde dich an, um eine Anzeige aufzugeben."
+              : "You must be logged in to submit a listing.",
+        );
         setLoading(false);
         return;
       }
 
-      const validatedProperty = propertySchema.parse(property);
+      if (images.length === 0) {
+        setErrorMessage(
+          locale === "fa"
+            ? "لطفاً حداقل یک عکس برای ملک آپلود کن."
+            : locale === "de"
+              ? "Bitte lade mindestens ein Bild hoch."
+              : "Please upload at least one property image.",
+        );
+        setLoading(false);
+        return;
+      }
+
+      const validatedProperty = propertySchema.parse(property) as Property;
 
       if (mode === "edit" && propertyId) {
         await updateProperty(propertyId, validatedProperty);
@@ -176,9 +206,9 @@ export default function PropertyForm({
       }
 
       if (submitMode === "public") {
-        router.push("/submit-property/success");
+        router.push(`/${locale}/submit-property/success`);
       } else {
-        router.push("/admin/properties");
+        router.push(`/${locale}/admin/properties`);
       }
     } catch (error) {
       console.error(error);
@@ -190,8 +220,16 @@ export default function PropertyForm({
       } else {
         setErrorMessage(
           mode === "edit"
-            ? "Could not update property."
-            : "Could not create property.",
+            ? locale === "fa"
+              ? "امکان ویرایش آگهی وجود ندارد."
+              : locale === "de"
+                ? "Die Anzeige konnte nicht aktualisiert werden."
+                : "Could not update property."
+            : locale === "fa"
+              ? "امکان ساخت آگهی وجود ندارد."
+              : locale === "de"
+                ? "Die Anzeige konnte nicht erstellt werden."
+                : "Could not create property.",
         );
       }
     } finally {
@@ -201,11 +239,22 @@ export default function PropertyForm({
 
   const data = initialData;
 
+  const featureItems: Array<[keyof Property["features"], string]> = [
+    ["balcony", t.form.balcony],
+    ["garden", t.form.garden],
+    ["elevator", t.form.elevator],
+    ["parking", t.form.parking],
+    ["furnished", t.form.furnished],
+    ["petsAllowed", t.form.petsAllowed],
+    ["cellar", t.form.cellar],
+    ["fittedKitchen", t.form.fittedKitchen],
+  ];
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <section className="rounded-[2rem] bg-white p-5 shadow-sm md:p-7">
         <h2 className="mb-5 text-xl font-black text-gray-950">
-          Basic information
+          {t.form.basicInformation}
         </h2>
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -213,7 +262,7 @@ export default function PropertyForm({
             name="title"
             required
             defaultValue={data?.title || ""}
-            placeholder="Title, for example Modern apartment in Berlin"
+            placeholder={t.form.titlePlaceholder}
           />
 
           <Select
@@ -223,18 +272,18 @@ export default function PropertyForm({
               setListingType(event.target.value as "rent" | "sale")
             }
           >
-            <option value="rent">For rent</option>
-            <option value="sale">For sale</option>
+            <option value="rent">{t.form.forRent}</option>
+            <option value="sale">{t.form.forSale}</option>
           </Select>
 
           <Select
             name="propertyType"
             defaultValue={data?.propertyType || "apartment"}
           >
-            <option value="apartment">Apartment</option>
-            <option value="house">House</option>
-            <option value="studio">Studio</option>
-            <option value="room">Room</option>
+            <option value="apartment">{t.form.apartment}</option>
+            <option value="house">{t.form.house}</option>
+            <option value="studio">{t.form.studio}</option>
+            <option value="room">{t.form.room}</option>
           </Select>
 
           {submitMode === "admin" ? (
@@ -258,8 +307,8 @@ export default function PropertyForm({
             defaultValue={data?.price || ""}
             placeholder={
               listingType === "rent"
-                ? "Monthly price, for example 1450"
-                : "Sale price"
+                ? t.form.monthlyPricePlaceholder
+                : t.form.salePricePlaceholder
             }
           />
 
@@ -268,7 +317,7 @@ export default function PropertyForm({
             required
             type="number"
             defaultValue={data?.details?.area || ""}
-            placeholder="Area m², for example 65"
+            placeholder={t.form.area}
           />
         </div>
 
@@ -276,50 +325,57 @@ export default function PropertyForm({
           name="description"
           required
           defaultValue={data?.description || ""}
-          placeholder="Describe the property, location, rooms, condition, and important details..."
+          placeholder={t.form.descriptionPlaceholder}
           rows={7}
           className="mt-4 w-full rounded-2xl bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder:text-gray-400"
         />
       </section>
 
       <section className="rounded-[2rem] bg-white p-5 shadow-sm md:p-7">
-        <h2 className="mb-5 text-xl font-black text-gray-950">Images</h2>
+        <h2 className="mb-5 text-xl font-black text-gray-950">
+          {t.form.images}
+        </h2>
+
         <ImageUploader images={images} onChange={setImages} />
       </section>
 
       <section className="rounded-[2rem] bg-white p-5 shadow-sm md:p-7">
-        <h2 className="mb-5 text-xl font-black text-gray-950">Location</h2>
+        <h2 className="mb-5 text-xl font-black text-gray-950">
+          {t.form.location}
+        </h2>
 
         <div className="grid gap-4 md:grid-cols-2">
           <Input
             name="city"
             required
             defaultValue={data?.location?.city || ""}
-            placeholder="City, for example Berlin"
+            placeholder={t.form.city}
           />
 
           <Input
             name="district"
             defaultValue={data?.location?.district || ""}
-            placeholder="District, for example Mitte"
+            placeholder={t.form.district}
           />
 
           <Input
             name="street"
             defaultValue={data?.location?.street || ""}
-            placeholder="Street"
+            placeholder={t.form.street}
           />
 
           <Input
             name="postalCode"
             defaultValue={data?.location?.postalCode || ""}
-            placeholder="Postal code"
+            placeholder={t.form.postalCode}
           />
         </div>
       </section>
 
       <section className="rounded-[2rem] bg-white p-5 shadow-sm md:p-7">
-        <h2 className="mb-5 text-xl font-black text-gray-950">Details</h2>
+        <h2 className="mb-5 text-xl font-black text-gray-950">
+          {t.form.details}
+        </h2>
 
         <div className="grid gap-4 md:grid-cols-3">
           <Input
@@ -328,42 +384,42 @@ export default function PropertyForm({
             type="number"
             step="0.5"
             defaultValue={data?.details?.rooms || ""}
-            placeholder="Rooms"
+            placeholder={t.form.rooms}
           />
 
           <Input
             name="bedrooms"
             type="number"
             defaultValue={data?.details?.bedrooms || ""}
-            placeholder="Bedrooms"
+            placeholder={t.form.bedrooms}
           />
 
           <Input
             name="bathrooms"
             type="number"
             defaultValue={data?.details?.bathrooms || ""}
-            placeholder="Bathrooms"
+            placeholder={t.form.bathrooms}
           />
 
           <Input
             name="floor"
             type="number"
             defaultValue={data?.details?.floor || ""}
-            placeholder="Floor"
+            placeholder={t.form.floor}
           />
 
           <Input
             name="totalFloors"
             type="number"
             defaultValue={data?.details?.totalFloors || ""}
-            placeholder="Total floors"
+            placeholder={t.form.totalFloors}
           />
 
           <Input
             name="yearBuilt"
             type="number"
             defaultValue={data?.details?.yearBuilt || ""}
-            placeholder="Year built"
+            placeholder={t.form.yearBuilt}
           />
         </div>
       </section>
@@ -371,7 +427,7 @@ export default function PropertyForm({
       {listingType === "rent" && (
         <section className="rounded-[2rem] bg-white p-5 shadow-sm md:p-7">
           <h2 className="mb-5 text-xl font-black text-gray-950">
-            Rent details
+            {t.form.rentDetails}
           </h2>
 
           <div className="grid gap-4 md:grid-cols-3">
@@ -379,28 +435,28 @@ export default function PropertyForm({
               name="coldRent"
               type="number"
               defaultValue={data?.rentDetails?.coldRent || ""}
-              placeholder="Cold rent"
+              placeholder={t.form.coldRent}
             />
 
             <Input
               name="warmRent"
               type="number"
               defaultValue={data?.rentDetails?.warmRent || ""}
-              placeholder="Warm rent"
+              placeholder={t.form.warmRent}
             />
 
             <Input
               name="utilities"
               type="number"
               defaultValue={data?.rentDetails?.utilities || ""}
-              placeholder="Utilities"
+              placeholder={t.form.utilities}
             />
 
             <Input
               name="deposit"
               type="number"
               defaultValue={data?.rentDetails?.deposit || ""}
-              placeholder="Deposit"
+              placeholder={t.form.deposit}
             />
 
             <Input
@@ -413,19 +469,12 @@ export default function PropertyForm({
       )}
 
       <section className="rounded-[2rem] bg-white p-5 shadow-sm md:p-7">
-        <h2 className="mb-5 text-xl font-black text-gray-950">Features</h2>
+        <h2 className="mb-5 text-xl font-black text-gray-950">
+          {t.form.features}
+        </h2>
 
         <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
-          {[
-            ["balcony", "Balcony"],
-            ["garden", "Garden"],
-            ["elevator", "Elevator"],
-            ["parking", "Parking"],
-            ["furnished", "Furnished"],
-            ["petsAllowed", "Pets allowed"],
-            ["cellar", "Cellar"],
-            ["fittedKitchen", "Fitted kitchen"],
-          ].map(([name, label]) => (
+          {featureItems.map(([name, label]) => (
             <label
               key={name}
               className="flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-4 text-sm font-semibold text-gray-700"
@@ -434,9 +483,7 @@ export default function PropertyForm({
                 name={name}
                 type="checkbox"
                 defaultChecked={
-                  data?.features
-                    ? Boolean(data.features[name as keyof typeof data.features])
-                    : false
+                  data?.features ? Boolean(data.features[name]) : false
                 }
               />
               <span>{label}</span>
@@ -446,28 +493,30 @@ export default function PropertyForm({
       </section>
 
       <section className="rounded-[2rem] bg-white p-5 shadow-sm md:p-7">
-        <h2 className="mb-5 text-xl font-black text-gray-950">Contact</h2>
+        <h2 className="mb-5 text-xl font-black text-gray-950">
+          {t.form.contact}
+        </h2>
 
         <div className="grid gap-4 md:grid-cols-3">
           <Input
             name="contactName"
             required
-            defaultValue={data?.contact?.name || ""}
-            placeholder="Contact name"
+            defaultValue={data?.contact?.name || user?.displayName || ""}
+            placeholder={t.form.contactName}
           />
 
           <Input
             name="contactEmail"
             required
             type="email"
-            defaultValue={data?.contact?.email || ""}
-            placeholder="Contact email"
+            defaultValue={data?.contact?.email || user?.email || ""}
+            placeholder={t.form.contactEmail}
           />
 
           <Input
             name="contactPhone"
             defaultValue={data?.contact?.phone || ""}
-            placeholder="Contact phone"
+            placeholder={t.form.contactPhone}
           />
         </div>
       </section>
@@ -486,15 +535,15 @@ export default function PropertyForm({
         >
           {loading
             ? mode === "edit"
-              ? "Updating property..."
+              ? t.form.updatingProperty
               : submitMode === "public"
-                ? "Submitting listing..."
-                : "Creating property..."
+                ? t.form.submittingListing
+                : t.form.creatingProperty
             : mode === "edit"
-              ? "Update property"
+              ? t.form.updateProperty
               : submitMode === "public"
-                ? "Submit listing for review"
-                : "Create property"}
+                ? t.form.submitForReview
+                : t.form.createProperty}
         </button>
       </div>
     </form>

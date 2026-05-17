@@ -2,14 +2,14 @@ import Link from "next/link";
 import { Bath, BedDouble, Heart, MapPin, Maximize2 } from "lucide-react";
 import type { Property } from "../types/property";
 import FavoriteButton from "./FavoriteButton";
-
+import { getLocalizedText } from "@/app/lib/localizedText";
 type Props = {
   property: Property;
 };
 
 export default function PropertyCard({ property }: Props) {
   const mainImage = property.images?.[0]?.url;
-
+  const title = getLocalizedText(property.title, locale);
   return (
     <Link
       href={`/properties/${property.id}`}
@@ -19,7 +19,7 @@ export default function PropertyCard({ property }: Props) {
         {mainImage ? (
           <img
             src={mainImage}
-            alt={property.title}
+            alt={title}
             className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           />
         ) : (
@@ -41,7 +41,7 @@ export default function PropertyCard({ property }: Props) {
 
       <div className="p-5">
         <h2 className="line-clamp-1 text-lg font-bold tracking-tight text-gray-950">
-          {property.title}
+          {title}
         </h2>
 
         <div className="mt-2 flex items-center gap-1 text-sm text-gray-500">

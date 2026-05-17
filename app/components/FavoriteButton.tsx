@@ -4,15 +4,18 @@ import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
 
 import { isFavorite, toggleFavorite } from "../lib/favorites";
+import { type Locale } from "../lib/i18n";
 
 type FavoriteButtonProps = {
   propertyId?: string;
   variant?: "icon" | "full";
+  locale?: Locale;
 };
 
 export default function FavoriteButton({
   propertyId,
   variant = "icon",
+  locale = "en",
 }: FavoriteButtonProps) {
   const [saved, setSaved] = useState(false);
 
@@ -38,6 +41,30 @@ export default function FavoriteButton({
     setSaved(isFavorite(propertyId));
   }
 
+  const saveText =
+    locale === "fa"
+      ? "ذخیره آگهی"
+      : locale === "de"
+        ? "Anzeige speichern"
+        : "Save property";
+
+  const savedText =
+    locale === "fa" ? "ذخیره شده" : locale === "de" ? "Gespeichert" : "Saved";
+
+  const addLabel =
+    locale === "fa"
+      ? "ذخیره آگهی"
+      : locale === "de"
+        ? "Anzeige speichern"
+        : "Save property";
+
+  const removeLabel =
+    locale === "fa"
+      ? "حذف از ذخیره‌شده‌ها"
+      : locale === "de"
+        ? "Aus gespeicherten Anzeigen entfernen"
+        : "Remove from saved";
+
   if (variant === "full") {
     return (
       <button
@@ -50,7 +77,7 @@ export default function FavoriteButton({
         }`}
       >
         <Heart size={18} fill={saved ? "currentColor" : "none"} />
-        {saved ? "Saved" : "Save property"}
+        {saved ? savedText : saveText}
       </button>
     );
   }
@@ -62,7 +89,7 @@ export default function FavoriteButton({
       className={`absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full shadow-sm backdrop-blur-md transition ${
         saved ? "bg-red-500 text-white" : "bg-white/90 text-gray-800"
       }`}
-      aria-label={saved ? "Remove from saved" : "Save property"}
+      aria-label={saved ? removeLabel : addLabel}
     >
       <Heart size={18} fill={saved ? "currentColor" : "none"} />
     </button>

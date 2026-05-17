@@ -1,5 +1,11 @@
-export type ListingType = "rent" | "sale";
+export type Locale = "en" | "fa" | "de";
 
+export type LocalizedText = {
+  en: string;
+  fa: string;
+  de: string;
+};
+export type ListingType = "rent" | "sale";
 export type PropertyStatus =
   | "pending"
   | "draft"
