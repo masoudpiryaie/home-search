@@ -455,8 +455,6 @@ export default function PropertiesClient({ locale }: PropertiesClientProps) {
                     {t.properties.largestArea}
                   </option>
                 </select>
-
-                <ChevronDown size={16} className="text-[var(--color-muted)]" />
               </div>
             </div>
 

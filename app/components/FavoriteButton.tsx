@@ -86,7 +86,7 @@ export default function FavoriteButton({
     <button
       type="button"
       onClick={handleClick}
-      className={`absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full shadow-sm backdrop-blur-md transition ${
+      className={`absolute right-4 top-1 flex h-10 w-10 items-center justify-center rounded-full shadow-sm backdrop-blur-md transition ${
         saved ? "bg-red-500 text-white" : "bg-white/90 text-gray-800"
       }`}
       aria-label={saved ? removeLabel : addLabel}

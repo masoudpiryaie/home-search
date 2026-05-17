@@ -4,15 +4,22 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
+  ArrowRight,
   Bath,
   BedDouble,
+  Building2,
+  CalendarDays,
   CheckCircle2,
+  ChevronDown,
   Home,
   Mail,
   MapPin,
   Maximize2,
+  MessageCircle,
   Phone,
   Share2,
+  Sofa,
+  Wifi,
 } from "lucide-react";
 
 import FavoriteButton from "@/app/components/FavoriteButton";
@@ -20,22 +27,28 @@ import InquiryForm from "@/app/components/InquiryForm";
 import { PropertyDetailsSkeleton } from "@/app/components/Skeletons";
 import { getPropertyById } from "@/app/lib/propertyService";
 import { getDictionary, type Locale } from "@/app/lib/i18n";
-import type { Property } from "@/app/types/property";
 import { getLocalizedText } from "@/app/lib/localizedText";
+import type { Property } from "@/app/types/property";
+
 type PropertyDetailsClientProps = {
   locale: Locale;
   propertyId: string;
 };
+
+const fallbackImage =
+  "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?q=80&w=1600&auto=format&fit=crop";
 
 export default function PropertyDetailsClient({
   locale,
   propertyId,
 }: PropertyDetailsClientProps) {
   const t = getDictionary(locale);
+  const isRtl = locale === "fa";
 
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   useEffect(() => {
     async function loadProperty() {
@@ -69,13 +82,13 @@ export default function PropertyDetailsClient({
 
   if (notFound || !property) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#f7f7f4] px-4">
-        <div className="max-w-md rounded-[2rem] bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-50">
-            <Home className="text-gray-400" size={26} />
+      <main className="flex min-h-screen items-center justify-center bg-[var(--color-bg)] px-4 py-10">
+        <div className="max-w-md rounded-[28px] border border-[var(--color-border)] bg-white p-8 text-center shadow-[var(--shadow-card)]">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[22px] bg-[var(--color-primary-soft)] text-[var(--color-primary)]">
+            <Home size={28} />
           </div>
 
-          <h1 className="mt-4 text-xl font-black text-gray-950">
+          <h1 className="mt-5 text-2xl font-black text-[var(--color-text)]">
             {locale === "fa"
               ? "آگهی پیدا نشد"
               : locale === "de"
@@ -83,7 +96,7 @@ export default function PropertyDetailsClient({
                 : "Property not found"}
           </h1>
 
-          <p className="mt-2 text-sm leading-6 text-gray-500">
+          <p className="mt-2 text-sm font-medium leading-6 text-[var(--color-muted)]">
             {locale === "fa"
               ? "این آگهی وجود ندارد یا هنوز تایید نشده است."
               : locale === "de"
@@ -93,7 +106,7 @@ export default function PropertyDetailsClient({
 
           <Link
             href={`/${locale}/properties?type=rent`}
-            className="mt-6 inline-flex rounded-2xl bg-black px-5 py-3 text-sm font-bold text-white"
+            className="mt-6 inline-flex rounded-[16px] bg-[var(--color-primary)] px-5 py-3 text-sm font-black text-white shadow-[var(--shadow-button)]"
           >
             {locale === "fa"
               ? "بازگشت به آگهی‌ها"
@@ -106,260 +119,342 @@ export default function PropertyDetailsClient({
     );
   }
 
-  const images = property.images || [];
-  const mainImage = images[0]?.url;
+  const images = property.images?.length
+    ? property.images.map((image) => image.url)
+    : [fallbackImage];
+
+  const currentImage = images[activeImageIndex] || fallbackImage;
+
   const title = getLocalizedText(property.title, locale);
   const description = getLocalizedText(property.description, locale);
-  return (
-    <main className="min-h-screen bg-[#f7f7f4] pb-28 md:pb-10">
-      <section className="mx-auto max-w-7xl px-4 py-5 md:px-6 md:py-8">
-        <div className="mb-4 flex items-center justify-between">
-          <Link
-            href={`/${locale}/properties?type=${property.listingType}`}
-            className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-gray-800 shadow-sm"
-          >
-            <ArrowLeft size={17} />
-            {t.common.back}
-          </Link>
+  const price = property.price?.toLocaleString("de-DE");
 
-          <div className="flex gap-2">
-            <div className="relative h-10 w-10">
-              <FavoriteButton propertyId={property.id} locale={locale} />
+  function nextImage() {
+    setActiveImageIndex((value) => (value + 1) % images.length);
+  }
+
+  function prevImage() {
+    setActiveImageIndex((value) => (value - 1 + images.length) % images.length);
+  }
+
+  function copyLink() {
+    navigator.clipboard.writeText(window.location.href);
+  }
+
+  return (
+    <main
+      dir={isRtl ? "rtl" : "ltr"}
+      className="min-h-screen bg-[var(--color-bg)] px-3 pb-28 pt-4 md:px-5 md:pb-12 md:pt-5"
+    >
+      <section className="mx-auto max-w-[1488px] overflow-hidden rounded-[30px] border border-[var(--color-border)] bg-white shadow-[var(--shadow-shell)] md:rounded-[34px]">
+        <div className="grid gap-7 px-5 py-5 md:px-8 md:py-8 lg:grid-cols-[1fr_320px] xl:grid-cols-[1fr_360px]">
+          <div className="min-w-0">
+            <div className="mb-5 hidden items-center gap-2 text-xs font-bold text-[var(--color-muted)] md:flex">
+              <Link
+                href={`/${locale}`}
+                className="transition hover:text-[var(--color-primary)]"
+              >
+                {locale === "fa" ? "خانه" : locale === "de" ? "Start" : "Home"}
+              </Link>
+
+              <span>›</span>
+
+              <Link
+                href={`/${locale}/properties?type=${property.listingType}`}
+                className="transition hover:text-[var(--color-primary)]"
+              >
+                {property.listingType === "rent"
+                  ? locale === "fa"
+                    ? "اجاره"
+                    : locale === "de"
+                      ? "Mieten"
+                      : "Rent"
+                  : locale === "fa"
+                    ? "خرید"
+                    : locale === "de"
+                      ? "Kaufen"
+                      : "Buy"}
+              </Link>
+
+              <span>›</span>
+
+              <span>{property.location?.city}</span>
+
+              {property.location?.district && (
+                <>
+                  <span>›</span>
+                  <span>{property.location.district}</span>
+                </>
+              )}
+
+              <span>›</span>
+
+              <span className="line-clamp-1 text-[var(--color-primary)]">
+                {title}
+              </span>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                navigator.clipboard.writeText(window.location.href);
-              }}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-gray-800 shadow-sm"
-            >
-              <Share2 size={18} />
-            </button>
-          </div>
-        </div>
-
-        <div className="grid gap-3 lg:grid-cols-[1.4fr_0.8fr]">
-          <div className="overflow-hidden rounded-[2rem] bg-white">
-            {mainImage ? (
-              <img
-                src={mainImage}
-                alt={title}
-                className="h-[340px] w-full object-cover sm:h-[460px] lg:h-[560px]"
-              />
-            ) : (
-              <div className="flex h-[340px] items-center justify-center text-sm text-gray-400 sm:h-[460px] lg:h-[560px]">
-                {locale === "fa"
-                  ? "بدون عکس"
-                  : locale === "de"
-                    ? "Kein Bild"
-                    : "No image"}
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
-            {images.slice(1, 3).map((image, index) => (
-              <div
-                key={image.publicId || index}
-                className="overflow-hidden rounded-[1.5rem] bg-white"
+            <div className="mb-4 flex items-center justify-between md:hidden">
+              <Link
+                href={`/${locale}/properties?type=${property.listingType}`}
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-[var(--color-border)]"
               >
-                <img
-                  src={image.url}
-                  alt={`${title} ${index + 2}`}
-                  className="h-40 w-full object-cover sm:h-52 lg:h-full"
-                />
+                {isRtl ? <ArrowRight size={20} /> : <ArrowLeft size={20} />}
+              </Link>
+
+              <div className="flex items-center gap-2">
+                <div className="relative h-11 w-11">
+                  <FavoriteButton propertyId={property.id} locale={locale} />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={copyLink}
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[var(--color-text)] shadow-sm ring-1 ring-[var(--color-border)]"
+                >
+                  <Share2 size={19} />
+                </button>
               </div>
-            ))}
+            </div>
 
-            {images.length <= 1 && (
-              <>
-                <PlaceholderImage locale={locale} />
-                <PlaceholderImage locale={locale} />
-              </>
-            )}
+            <div className="relative overflow-hidden rounded-[24px] bg-gray-100 md:rounded-[28px]">
+              <img
+                src={currentImage}
+                alt={title}
+                className="h-[300px] w-full object-cover sm:h-[380px] md:h-[500px]"
+              />
 
-            {images.length === 2 && <PlaceholderImage locale={locale} />}
-          </div>
-        </div>
+              {images.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={prevImage}
+                    className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[var(--color-text)] shadow-md"
+                  >
+                    <ArrowLeft size={21} />
+                  </button>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_380px]">
-          <div className="space-y-6">
-            <section className="rounded-[2rem] bg-white p-5 shadow-sm md:p-7">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-black px-3 py-1 text-xs font-bold text-white">
-                  {property.listingType === "rent"
-                    ? t.properties.forRent
-                    : t.properties.forSale}
-                </span>
+                  <button
+                    type="button"
+                    onClick={nextImage}
+                    className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[var(--color-text)] shadow-md"
+                  >
+                    <ArrowRight size={21} />
+                  </button>
+                </>
+              )}
 
-                <span className="rounded-full bg-gray-50 px-3 py-1 text-xs font-bold capitalize text-gray-700">
-                  {getPropertyTypeLabel(property.propertyType, locale)}
-                </span>
+              <div className="absolute bottom-4 left-4 rounded-full bg-black/55 px-3 py-1.5 text-sm font-black text-white backdrop-blur-md">
+                {activeImageIndex + 1} / {images.length}
               </div>
 
-              <h1 className="mt-4 text-3xl font-black tracking-tight text-gray-950 md:text-5xl">
-                {title}
-              </h1>
-
-              <div className="mt-3 flex items-center gap-2 text-sm text-gray-500">
-                <MapPin size={17} />
-                <span>
-                  {property.location?.city}
-                  {property.location?.district
-                    ? `, ${property.location.district}`
-                    : ""}
-                </span>
-              </div>
-
-              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <DetailBox
-                  icon={<BedDouble size={20} />}
-                  label={
-                    locale === "fa"
-                      ? "اتاق"
-                      : locale === "de"
-                        ? "Zimmer"
-                        : "Rooms"
-                  }
-                  value={property.details?.rooms || "-"}
-                />
-
-                <DetailBox
-                  icon={<Maximize2 size={20} />}
-                  label={
-                    locale === "fa"
-                      ? "متراژ"
-                      : locale === "de"
-                        ? "Fläche"
-                        : "Area"
-                  }
-                  value={`${property.details?.area || "-"} m²`}
-                />
-
-                <DetailBox
-                  icon={<Bath size={20} />}
-                  label={
-                    locale === "fa" ? "حمام" : locale === "de" ? "Bad" : "Bath"
-                  }
-                  value={property.details?.bathrooms || 1}
-                />
-
-                <DetailBox
-                  icon={<Home size={20} />}
-                  label={
-                    locale === "fa"
-                      ? "قیمت"
-                      : locale === "de"
-                        ? "Preis"
-                        : "Price"
-                  }
-                  value={`${property.price?.toLocaleString("de-DE")} €`}
-                />
-              </div>
-            </section>
-
-            <section className="rounded-[2rem] bg-white p-5 shadow-sm md:p-7">
-              <h2 className="text-xl font-black text-gray-950">
+              <button className="absolute bottom-4 right-4 hidden items-center gap-2 rounded-[14px] bg-white px-4 py-3 text-sm font-black text-[var(--color-text)] shadow-md md:inline-flex">
+                <Maximize2 size={18} />
                 {locale === "fa"
-                  ? "توضیحات"
+                  ? "مشاهده عکس‌ها"
                   : locale === "de"
-                    ? "Beschreibung"
-                    : "Description"}
+                    ? "Alle Fotos"
+                    : "View all photos"}
+              </button>
+            </div>
+
+            <div className="mt-5 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div>
+                <h1 className="text-[28px] font-black leading-tight tracking-[-0.045em] text-[var(--color-text)] md:text-[36px]">
+                  {title}
+                </h1>
+
+                <div className="mt-3 flex flex-wrap items-center gap-3 text-sm font-bold text-[var(--color-muted)]">
+                  <span className="inline-flex items-center gap-1">
+                    <MapPin size={17} />
+                    {property.location?.city}
+                    {property.location?.district
+                      ? `, ${property.location.district}`
+                      : ""}
+                  </span>
+
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-primary-soft)] px-3 py-1 text-[var(--color-primary)]">
+                    <CheckCircle2 size={15} />
+                    {locale === "fa"
+                      ? "معتبر"
+                      : locale === "de"
+                        ? "Geprüft"
+                        : "Verified"}
+                  </span>
+                </div>
+
+                <p className="mt-4 text-[30px] font-black text-[var(--color-primary)] md:text-[34px]">
+                  €{price}
+                  <span className="text-base font-bold text-[var(--color-muted)]">
+                    {" "}
+                    /{" "}
+                    {locale === "fa"
+                      ? "ماه"
+                      : locale === "de"
+                        ? "Monat"
+                        : "month"}
+                  </span>
+                </p>
+              </div>
+
+              <div className="hidden gap-3 md:flex">
+                <div className="relative h-12 w-12">
+                  <FavoriteButton propertyId={property.id} locale={locale} />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={copyLink}
+                  className="flex h-12 items-center gap-2 rounded-[14px] border border-[var(--color-border)] bg-white px-4 text-sm font-black text-[var(--color-text)] shadow-sm"
+                >
+                  <Share2 size={18} />
+                  {locale === "fa"
+                    ? "اشتراک"
+                    : locale === "de"
+                      ? "Teilen"
+                      : "Share"}
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-4 gap-2 md:flex md:flex-wrap md:gap-3">
+              <DetailBox
+                icon={<BedDouble size={20} />}
+                label={
+                  locale === "fa"
+                    ? "اتاق"
+                    : locale === "de"
+                      ? "Zimmer"
+                      : "Rooms"
+                }
+                value={property.details?.rooms || "-"}
+              />
+
+              <DetailBox
+                icon={<Maximize2 size={20} />}
+                label={
+                  locale === "fa" ? "متراژ" : locale === "de" ? "Größe" : "Size"
+                }
+                value={`${property.details?.area || "-"} m²`}
+              />
+
+              <DetailBox
+                icon={<Bath size={20} />}
+                label={
+                  locale === "fa" ? "حمام" : locale === "de" ? "Bad" : "Bath"
+                }
+                value={property.details?.bathrooms || 1}
+              />
+
+              <DetailBox
+                icon={<Sofa size={20} />}
+                label={
+                  locale === "fa"
+                    ? "مبله"
+                    : locale === "de"
+                      ? "Möbliert"
+                      : "Furnished"
+                }
+                value={
+                  property.features?.furnished
+                    ? locale === "fa"
+                      ? "بله"
+                      : locale === "de"
+                        ? "Ja"
+                        : "Yes"
+                    : "-"
+                }
+              />
+            </div>
+
+            <section className="mt-7 border-t border-[var(--color-border)] pt-6">
+              <h2 className="text-[22px] font-black tracking-[-0.03em] text-[var(--color-text)]">
+                {locale === "fa"
+                  ? "درباره این ملک"
+                  : locale === "de"
+                    ? "Über diese Immobilie"
+                    : "About this property"}
               </h2>
 
-              <p className="mt-4 whitespace-pre-line text-sm leading-7 text-gray-600 md:text-base">
+              <p className="mt-3 max-w-3xl whitespace-pre-line text-sm font-semibold leading-7 text-[var(--color-muted)] md:text-base">
                 {description}
               </p>
+
+              <button className="mt-3 inline-flex items-center gap-1 text-sm font-black text-[var(--color-primary)] md:hidden">
+                {locale === "fa"
+                  ? "بیشتر بخوانید"
+                  : locale === "de"
+                    ? "Mehr lesen"
+                    : "Read more"}
+                <ChevronDown size={16} />
+              </button>
             </section>
 
-            <section className="rounded-[2rem] bg-white p-5 shadow-sm md:p-7">
-              <h2 className="text-xl font-black text-gray-950">
+            <section className="mt-7 border-t border-[var(--color-border)] pt-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-[22px] font-black tracking-[-0.03em] text-[var(--color-text)]">
+                  {locale === "fa"
+                    ? "امکانات"
+                    : locale === "de"
+                      ? "Ausstattung"
+                      : "Amenities & features"}
+                </h2>
+
+                <button className="text-sm font-black text-[var(--color-primary)] md:hidden">
+                  {locale === "fa"
+                    ? "مشاهده همه"
+                    : locale === "de"
+                      ? "Alle ansehen"
+                      : "See all"}
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                {getActiveFeatures(property, locale).map((feature) => (
+                  <Amenity
+                    key={feature.label}
+                    icon={feature.icon}
+                    label={feature.label}
+                  />
+                ))}
+
+                {getActiveFeatures(property, locale).length === 0 && (
+                  <p className="text-sm font-semibold text-[var(--color-muted)]">
+                    {locale === "fa"
+                      ? "امکانات خاصی ثبت نشده است."
+                      : locale === "de"
+                        ? "Keine besonderen Ausstattungen angegeben."
+                        : "No special features listed."}
+                  </p>
+                )}
+              </div>
+            </section>
+
+            <section className="mt-7 border-t border-[var(--color-border)] pt-6">
+              <h2 className="mb-4 text-[22px] font-black tracking-[-0.03em] text-[var(--color-text)]">
                 {locale === "fa"
-                  ? "جزئیات ملک"
+                  ? "موقعیت"
                   : locale === "de"
-                    ? "Immobiliendetails"
-                    : "Property details"}
+                    ? "Lage"
+                    : "Location"}
               </h2>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <InfoRow
-                  label={
-                    locale === "fa"
-                      ? "تعداد اتاق"
-                      : locale === "de"
-                        ? "Zimmer"
-                        : "Rooms"
-                  }
-                  value={property.details?.rooms}
-                />
+              <div className="relative h-[170px] overflow-hidden rounded-[22px] bg-[var(--color-primary-soft)] md:h-[230px]">
+                <div className="absolute inset-0 opacity-70 [background-image:linear-gradient(90deg,rgba(255,255,255,.65)_1px,transparent_1px),linear-gradient(rgba(255,255,255,.65)_1px,transparent_1px)] [background-size:28px_28px]" />
 
-                <InfoRow
-                  label={
-                    locale === "fa"
-                      ? "اتاق خواب"
-                      : locale === "de"
-                        ? "Schlafzimmer"
-                        : "Bedrooms"
-                  }
-                  value={property.details?.bedrooms}
-                />
-
-                <InfoRow
-                  label={
-                    locale === "fa"
-                      ? "حمام"
-                      : locale === "de"
-                        ? "Badezimmer"
-                        : "Bathrooms"
-                  }
-                  value={property.details?.bathrooms}
-                />
-
-                <InfoRow
-                  label={
-                    locale === "fa"
-                      ? "متراژ"
-                      : locale === "de"
-                        ? "Fläche"
-                        : "Area"
-                  }
-                  value={
-                    property.details?.area ? `${property.details.area} m²` : "-"
-                  }
-                />
-
-                <InfoRow
-                  label={
-                    locale === "fa"
-                      ? "طبقه"
-                      : locale === "de"
-                        ? "Etage"
-                        : "Floor"
-                  }
-                  value={property.details?.floor}
-                />
-
-                <InfoRow
-                  label={
-                    locale === "fa"
-                      ? "سال ساخت"
-                      : locale === "de"
-                        ? "Baujahr"
-                        : "Year built"
-                  }
-                  value={property.details?.yearBuilt}
-                />
+                <div className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--color-primary)] text-white shadow-[var(--shadow-button)]">
+                  <MapPin size={28} fill="currentColor" />
+                </div>
               </div>
             </section>
 
             {property.listingType === "rent" && property.rentDetails && (
-              <section className="rounded-[2rem] bg-white p-5 shadow-sm md:p-7">
-                <h2 className="text-xl font-black text-gray-950">
+              <section className="mt-7 border-t border-[var(--color-border)] pt-6">
+                <h2 className="text-[22px] font-black tracking-[-0.03em] text-[var(--color-text)]">
                   {t.form.rentDetails}
                 </h2>
 
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <InfoRow
                     label={t.form.coldRent}
                     value={
@@ -412,44 +507,16 @@ export default function PropertyDetailsClient({
               </section>
             )}
 
-            <section className="rounded-[2rem] bg-white p-5 shadow-sm md:p-7">
-              <h2 className="text-xl font-black text-gray-950">
-                {t.form.features}
-              </h2>
-
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-                {getActiveFeatures(property, locale).map((feature) => (
-                  <div
-                    key={feature}
-                    className="flex items-center gap-2 rounded-2xl bg-gray-50 px-4 py-3 text-sm font-bold text-gray-700"
-                  >
-                    <CheckCircle2 size={17} className="text-green-600" />
-                    {feature}
-                  </div>
-                ))}
-
-                {getActiveFeatures(property, locale).length === 0 && (
-                  <p className="text-sm text-gray-500">
-                    {locale === "fa"
-                      ? "امکانات خاصی ثبت نشده است."
-                      : locale === "de"
-                        ? "Keine besonderen Ausstattungen angegeben."
-                        : "No special features listed."}
-                  </p>
-                )}
-              </div>
-            </section>
-
-            <section className="rounded-[2rem] bg-white p-5 shadow-sm md:p-7 lg:hidden">
-              <h2 className="text-xl font-black text-gray-950">
+            <section className="mt-7 border-t border-[var(--color-border)] pt-6 lg:hidden">
+              <h2 className="text-[22px] font-black tracking-[-0.03em] text-[var(--color-text)]">
                 {locale === "fa"
                   ? "تماس با آگهی‌دهنده"
                   : locale === "de"
                     ? "Anbieter kontaktieren"
-                    : "Contact owner"}
+                    : "Contact agent"}
               </h2>
 
-              <p className="mt-2 text-sm text-gray-500">
+              <p className="mt-2 text-sm font-medium leading-6 text-[var(--color-muted)]">
                 {locale === "fa"
                   ? "برای این ملک پیام ارسال کنید."
                   : locale === "de"
@@ -462,25 +529,70 @@ export default function PropertyDetailsClient({
           </div>
 
           <aside className="hidden lg:block">
-            <div className="sticky top-28">
+            <div className="sticky top-28 space-y-5">
               <ContactCard property={property} locale={locale} />
+
+              <div className="rounded-[24px] border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-card)]">
+                <h3 className="text-xl font-black text-[var(--color-text)]">
+                  {locale === "fa"
+                    ? "موقعیت"
+                    : locale === "de"
+                      ? "Lage"
+                      : "Location"}
+                </h3>
+
+                <div className="mt-4 h-[260px] overflow-hidden rounded-[18px] bg-[var(--color-primary-soft)]">
+                  <div className="relative h-full">
+                    <div className="absolute inset-0 opacity-70 [background-image:linear-gradient(90deg,rgba(255,255,255,.65)_1px,transparent_1px),linear-gradient(rgba(255,255,255,.65)_1px,transparent_1px)] [background-size:28px_28px]" />
+                    <div className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--color-primary)] text-white shadow-[var(--shadow-button)]">
+                      <MapPin size={28} fill="currentColor" />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </aside>
         </div>
       </section>
-    </main>
-  );
-}
 
-function PlaceholderImage({ locale }: { locale: Locale }) {
-  return (
-    <div className="flex h-40 items-center justify-center rounded-[1.5rem] bg-white text-xs text-gray-400 sm:h-52 lg:h-full">
-      {locale === "fa"
-        ? "بدون عکس"
-        : locale === "de"
-          ? "Kein Bild"
-          : "No image"}
-    </div>
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--color-border)] bg-white/95 px-4 py-3 shadow-[0_-12px_35px_rgba(16,24,40,0.10)] backdrop-blur-xl lg:hidden">
+        <div className="mx-auto grid max-w-md grid-cols-2 gap-3">
+          {property.contact?.phone ? (
+            <a
+              href={`tel:${property.contact.phone}`}
+              className="flex h-14 items-center justify-center gap-2 rounded-[16px] border border-[var(--color-border)] bg-white text-sm font-black text-[var(--color-text)] shadow-sm"
+            >
+              <Phone size={19} />
+              {locale === "fa" ? "تماس" : locale === "de" ? "Anrufen" : "Call"}
+            </a>
+          ) : (
+            <a
+              href={`mailto:${property.contact?.email || ""}`}
+              className="flex h-14 items-center justify-center gap-2 rounded-[16px] border border-[var(--color-border)] bg-white text-sm font-black text-[var(--color-text)] shadow-sm"
+            >
+              <Mail size={19} />
+              {locale === "fa"
+                ? "پیام"
+                : locale === "de"
+                  ? "Nachricht"
+                  : "Message"}
+            </a>
+          )}
+
+          <a
+            href={`mailto:${property.contact?.email || ""}`}
+            className="flex h-14 items-center justify-center gap-2 rounded-[16px] bg-[var(--color-accent)] text-sm font-black text-white shadow-[var(--shadow-button)]"
+          >
+            <CalendarDays size={19} />
+            {locale === "fa"
+              ? "رزرو بازدید"
+              : locale === "de"
+                ? "Besichtigung"
+                : "Book a viewing"}
+          </a>
+        </div>
+      </div>
+    </main>
   );
 }
 
@@ -494,19 +606,37 @@ function DetailBox({
   value: React.ReactNode;
 }) {
   return (
-    <div className="rounded-[1.3rem] bg-gray-50 p-4">
-      <div className="text-gray-500">{icon}</div>
-      <p className="mt-3 text-xs font-bold text-gray-400">{label}</p>
-      <p className="mt-1 text-lg font-black text-gray-950">{value}</p>
+    <div className="flex min-h-[68px] flex-col items-center justify-center gap-1 rounded-[16px] border border-[var(--color-border)] bg-white px-2 text-center text-xs font-black text-[var(--color-text)] shadow-sm md:min-h-[64px] md:min-w-[128px] md:flex-row md:gap-3 md:px-4">
+      <span className="text-[var(--color-primary)]">{icon}</span>
+
+      <span>{value}</span>
+
+      <span className="text-[11px] font-bold text-[var(--color-muted)] md:hidden">
+        {label}
+      </span>
     </div>
   );
 }
 
 function InfoRow({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl bg-gray-50 px-4 py-3">
-      <span className="text-sm font-medium text-gray-500">{label}</span>
-      <span className="text-sm font-black text-gray-950">{value || "-"}</span>
+    <div className="flex items-center justify-between gap-4 rounded-[16px] border border-[var(--color-border)] bg-white px-4 py-3 shadow-sm">
+      <span className="text-sm font-bold text-[var(--color-muted)]">
+        {label}
+      </span>
+
+      <span className="text-sm font-black text-[var(--color-text)]">
+        {value || "-"}
+      </span>
+    </div>
+  );
+}
+
+function Amenity({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div className="inline-flex items-center gap-2 rounded-[14px] border border-[var(--color-border)] bg-white px-4 py-3 text-sm font-black text-[var(--color-muted)] shadow-sm">
+      <span className="text-[var(--color-primary)]">{icon}</span>
+      {label}
     </div>
   );
 }
@@ -519,66 +649,91 @@ function ContactCard({
   locale: Locale;
 }) {
   return (
-    <div className="rounded-[2rem] bg-white p-5 shadow-sm md:p-6">
-      <p className="text-sm font-medium text-gray-500">
+    <div className="rounded-[24px] border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-card)]">
+      <p className="text-xl font-black text-[var(--color-text)]">
         {locale === "fa"
-          ? "اطلاعات تماس"
+          ? "تماس با مشاور"
           : locale === "de"
-            ? "Kontakt"
-            : "Contact"}
+            ? "Anbieter kontaktieren"
+            : "Contact agent"}
       </p>
 
-      <h2 className="mt-2 text-2xl font-black text-gray-950">
-        {property.contact?.name}
-      </h2>
+      <div className="mt-5 flex items-center gap-3">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-lg font-black text-[var(--color-primary)]">
+          {property.contact?.name?.charAt(0) || "A"}
+        </div>
 
-      <p className="mt-2 text-sm leading-6 text-gray-500">
-        {locale === "fa"
-          ? "برای دریافت اطلاعات بیشتر درباره این ملک پیام ارسال کنید."
-          : locale === "de"
-            ? "Sende eine Nachricht, um mehr Informationen zu dieser Immobilie zu erhalten."
-            : "Send a message to get more information about this property."}
-      </p>
+        <div>
+          <h2 className="font-black text-[var(--color-text)]">
+            {property.contact?.name ||
+              (locale === "fa"
+                ? "مشاور ملک"
+                : locale === "de"
+                  ? "Property Manager"
+                  : "Property Manager")}
+          </h2>
 
-      <div className="mt-5 space-y-3">
+          <p className="text-sm font-semibold text-[var(--color-muted)]">
+            {locale === "fa"
+              ? "مدیر ملک"
+              : locale === "de"
+                ? "Property Manager"
+                : "Professional Agent"}
+          </p>
+        </div>
+      </div>
+
+      {property.contact?.phone && (
+        <a
+          href={`tel:${property.contact.phone}`}
+          className="mt-5 flex h-13 items-center justify-center gap-2 rounded-[16px] border border-[var(--color-border)] bg-white px-4 py-4 text-sm font-black text-[var(--color-text)] shadow-sm"
+        >
+          <Phone size={18} />
+          {property.contact.phone}
+        </a>
+      )}
+
+      <div className="mt-4 space-y-3">
+        {property.contact?.email && (
+          <a
+            href={`mailto:${property.contact.email}`}
+            className="flex h-14 items-center justify-center gap-2 rounded-[16px] bg-[var(--color-primary)] px-5 text-sm font-black text-white shadow-[var(--shadow-button)]"
+          >
+            <MessageCircle size={18} />
+            {locale === "fa"
+              ? "پیام"
+              : locale === "de"
+                ? "Nachricht"
+                : "Message"}
+          </a>
+        )}
+
+        <a
+          href={`mailto:${property.contact?.email || ""}`}
+          className="flex h-14 items-center justify-center gap-2 rounded-[16px] bg-[var(--color-accent)] px-5 text-sm font-black text-white shadow-[var(--shadow-button)]"
+        >
+          <CalendarDays size={18} />
+          {locale === "fa"
+            ? "رزرو بازدید"
+            : locale === "de"
+              ? "Besichtigung buchen"
+              : "Book a viewing"}
+        </a>
+
         <FavoriteButton
           propertyId={property.id}
           variant="full"
           locale={locale}
         />
-
-        {property.contact?.email && (
-          <a
-            href={`mailto:${property.contact.email}`}
-            className="flex items-center justify-center gap-2 rounded-2xl bg-black px-5 py-4 text-sm font-bold text-white"
-          >
-            <Mail size={18} />
-            {locale === "fa"
-              ? "ارسال ایمیل"
-              : locale === "de"
-                ? "E-Mail senden"
-                : "Send email"}
-          </a>
-        )}
-
-        {property.contact?.phone && (
-          <a
-            href={`tel:${property.contact.phone}`}
-            className="flex items-center justify-center gap-2 rounded-2xl border border-gray-200 px-5 py-4 text-sm font-bold text-gray-800"
-          >
-            <Phone size={18} />
-            {locale === "fa" ? "تماس" : locale === "de" ? "Anrufen" : "Call"}
-          </a>
-        )}
       </div>
 
-      <div className="mt-6 border-t border-gray-100 pt-5">
-        <p className="text-sm font-black text-gray-950">
+      <div className="mt-5 border-t border-[var(--color-border)] pt-5">
+        <p className="text-sm font-black text-[var(--color-text)]">
           {locale === "fa"
             ? "ارسال پیام"
             : locale === "de"
               ? "Nachricht senden"
-              : "Send a message"}
+              : "Send message"}
         </p>
 
         <InquiryForm property={property} locale={locale} />
@@ -620,9 +775,10 @@ function getActiveFeatures(property: Property, locale: Locale) {
       elevator: "Elevator",
       parking: "Parking",
       furnished: "Furnished",
-      petsAllowed: "Pets allowed",
+      petsAllowed: "Pet friendly",
       cellar: "Cellar",
-      fittedKitchen: "Fitted kitchen",
+      fittedKitchen: "Dishwasher",
+      wifi: "Wi-Fi",
     },
     fa: {
       balcony: "بالکن",
@@ -633,6 +789,7 @@ function getActiveFeatures(property: Property, locale: Locale) {
       petsAllowed: "حیوان خانگی مجاز",
       cellar: "انباری",
       fittedKitchen: "آشپزخانه آماده",
+      wifi: "وای‌فای",
     },
     de: {
       balcony: "Balkon",
@@ -643,14 +800,40 @@ function getActiveFeatures(property: Property, locale: Locale) {
       petsAllowed: "Haustiere erlaubt",
       cellar: "Keller",
       fittedKitchen: "Einbauküche",
+      wifi: "WLAN",
     },
+  };
+
+  const featureIcons = {
+    balcony: <Home size={18} />,
+    garden: <Home size={18} />,
+    elevator: <Building2 size={18} />,
+    parking: <MapPin size={18} />,
+    furnished: <Sofa size={18} />,
+    petsAllowed: <CheckCircle2 size={18} />,
+    cellar: <Home size={18} />,
+    fittedKitchen: <Home size={18} />,
+    wifi: <Wifi size={18} />,
   };
 
   const features = property.features || {};
   const labels = featureLabels[locale] || featureLabels.en;
 
-  return Object.entries(features)
+  const activeFeatures = Object.entries(features)
     .filter(([, value]) => Boolean(value))
-    .map(([key]) => labels[key as keyof typeof labels])
-    .filter(Boolean);
+    .map(([key]) => ({
+      label: labels[key as keyof typeof labels],
+      icon: featureIcons[key as keyof typeof featureIcons] || (
+        <CheckCircle2 size={18} />
+      ),
+    }))
+    .filter((item) => Boolean(item.label));
+
+  return [
+    ...activeFeatures,
+    {
+      label: labels.wifi,
+      icon: featureIcons.wifi,
+    },
+  ];
 }

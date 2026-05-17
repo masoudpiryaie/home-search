@@ -2,7 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Eye, EyeOff, Home, Lock, Mail, User } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Home,
+  Lock,
+  Mail,
+  User,
+} from "lucide-react";
 import Link from "next/link";
 
 import { useAuth } from "@/app/context/AuthContext";
@@ -17,6 +26,8 @@ type LoginClientProps = {
 export default function LoginClient({ locale }: LoginClientProps) {
   const router = useRouter();
   const t = getDictionary(locale);
+  const labels = getLabels(locale);
+  const isRtl = locale === "fa";
 
   const { login, register, loginWithGoogle, resetPassword } = useAuth();
 
@@ -53,7 +64,7 @@ export default function LoginClient({ locale }: LoginClientProps) {
     try {
       if (isReset) {
         await resetPassword(email);
-        setSuccessMessage(getLabels(locale).resetEmailSent);
+        setSuccessMessage(labels.resetEmailSent);
         setLoadingProvider(null);
         return;
       }
@@ -89,19 +100,23 @@ export default function LoginClient({ locale }: LoginClientProps) {
     }
   }
 
-  const labels = getLabels(locale);
-
   return (
-    <main className="min-h-screen bg-[#f7f7f4] px-4 py-8 md:px-6">
-      <div className="mx-auto grid min-h-[calc(100vh-120px)] max-w-6xl items-center gap-8 lg:grid-cols-2">
-        <section className="hidden overflow-hidden rounded-[2.5rem] bg-black p-8 text-white shadow-xl lg:block">
-          <div className="flex h-[620px] flex-col justify-between">
-            <div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-black">
-                <Home size={24} />
+    <main
+      dir={isRtl ? "rtl" : "ltr"}
+      className="min-h-screen bg-[var(--color-bg)] px-3 py-5 md:px-5 md:py-7"
+    >
+      <div className="mx-auto grid min-h-[calc(100vh-56px)] max-w-[1180px] items-center gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+        <section className="hidden overflow-hidden rounded-[34px] border border-[var(--color-border)] bg-white shadow-[var(--shadow-shell)] lg:block">
+          <div className="relative flex h-[660px] flex-col justify-between overflow-hidden bg-[var(--color-primary)] p-9 text-white">
+            <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+            <div className="absolute -bottom-24 left-6 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
+
+            <div className="relative">
+              <div className="flex h-14 w-14 items-center justify-center rounded-[20px] bg-white text-[var(--color-primary)] shadow-lg">
+                <Home size={26} />
               </div>
 
-              <h1 className="mt-8 max-w-md text-5xl font-black leading-tight tracking-tight">
+              <h1 className="mt-9 max-w-md text-[52px] font-black leading-[1.05] tracking-[-0.055em]">
                 {isReset
                   ? labels.sideResetTitle
                   : isRegister
@@ -109,21 +124,27 @@ export default function LoginClient({ locale }: LoginClientProps) {
                     : labels.sideLoginTitle}
               </h1>
 
-              <p className="mt-5 max-w-md text-base leading-7 text-white/60">
+              <p className="mt-5 max-w-md text-base font-medium leading-8 text-white/75">
                 {labels.sideText}
               </p>
             </div>
 
-            <div className="rounded-[2rem] bg-white/10 p-5 backdrop-blur-md">
-              <p className="text-sm text-white/60">
-                {locale === "fa"
-                  ? "دسترسی ساده"
-                  : locale === "de"
-                    ? "Einfacher Zugang"
-                    : "Simple access"}
-              </p>
+            <div className="relative rounded-[28px] border border-white/10 bg-white/15 p-5 backdrop-blur-md">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-[var(--color-primary)]">
+                  <CheckCircle2 size={21} />
+                </div>
 
-              <p className="mt-2 text-xl font-bold">{t.auth.emailOrGoogle}</p>
+                <div>
+                  <p className="text-sm font-black text-white">
+                    {t.common.siteName}
+                  </p>
+
+                  <p className="mt-1 text-sm font-medium leading-6 text-white/70">
+                    {t.auth.emailOrGoogle}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -131,15 +152,15 @@ export default function LoginClient({ locale }: LoginClientProps) {
         <section className="mx-auto w-full max-w-md">
           <Link
             href={`/${locale}`}
-            className="mb-6 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-gray-800 shadow-sm"
+            className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-4 py-2 text-sm font-black text-[var(--color-text)] shadow-sm transition hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-primary)]"
           >
             <Home size={17} />
             {t.nav.home}
           </Link>
 
-          <div className="rounded-[2.3rem] bg-white p-6 shadow-xl shadow-black/5 md:p-8">
+          <div className="rounded-[30px] border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-shell)] md:rounded-[34px] md:p-8">
             <div>
-              <p className="text-sm font-bold uppercase tracking-wide text-[#9a7a3d]">
+              <p className="text-sm font-black uppercase tracking-wide text-[var(--color-primary)]">
                 {isReset
                   ? t.auth.resetPassword
                   : isRegister
@@ -147,7 +168,7 @@ export default function LoginClient({ locale }: LoginClientProps) {
                     : t.auth.welcomeBack}
               </p>
 
-              <h1 className="mt-2 text-3xl font-black tracking-tight text-gray-950 md:text-4xl">
+              <h1 className="mt-2 text-3xl font-black tracking-[-0.04em] text-[var(--color-text)] md:text-4xl">
                 {isReset
                   ? t.auth.resetPassword
                   : isRegister
@@ -155,7 +176,7 @@ export default function LoginClient({ locale }: LoginClientProps) {
                     : t.auth.login}
               </h1>
 
-              <p className="mt-3 text-sm leading-6 text-gray-500">
+              <p className="mt-3 text-sm font-medium leading-6 text-[var(--color-muted)]">
                 {isReset
                   ? t.auth.resetSubtitle
                   : isRegister
@@ -166,14 +187,14 @@ export default function LoginClient({ locale }: LoginClientProps) {
 
             {!isReset && (
               <>
-                <div className="mt-6 grid grid-cols-2 rounded-2xl bg-gray-50 p-1">
+                <div className="mt-6 grid grid-cols-2 rounded-[20px] bg-[var(--color-surface-soft)] p-1 ring-1 ring-[var(--color-border)]">
                   <button
                     type="button"
                     onClick={() => changeMode("login")}
-                    className={`rounded-xl px-4 py-3 text-sm font-black transition ${
+                    className={`rounded-[16px] px-4 py-3 text-sm font-black transition ${
                       mode === "login"
-                        ? "bg-white text-gray-950 shadow-sm"
-                        : "text-gray-500"
+                        ? "bg-white text-[var(--color-text)] shadow-sm"
+                        : "text-[var(--color-muted)]"
                     }`}
                   >
                     {t.auth.login}
@@ -182,10 +203,10 @@ export default function LoginClient({ locale }: LoginClientProps) {
                   <button
                     type="button"
                     onClick={() => changeMode("register")}
-                    className={`rounded-xl px-4 py-3 text-sm font-black transition ${
+                    className={`rounded-[16px] px-4 py-3 text-sm font-black transition ${
                       mode === "register"
-                        ? "bg-white text-gray-950 shadow-sm"
-                        : "text-gray-500"
+                        ? "bg-white text-[var(--color-text)] shadow-sm"
+                        : "text-[var(--color-muted)]"
                     }`}
                   >
                     {t.auth.signUp}
@@ -197,7 +218,7 @@ export default function LoginClient({ locale }: LoginClientProps) {
                     type="button"
                     onClick={handleGoogleLogin}
                     disabled={loadingProvider !== null}
-                    className="flex w-full items-center justify-center gap-3 rounded-2xl border border-gray-200 bg-white px-5 py-4 text-sm font-black text-gray-800 transition hover:bg-gray-50 disabled:opacity-50"
+                    className="flex w-full items-center justify-center gap-3 rounded-[18px] border border-[var(--color-border)] bg-white px-5 py-4 text-sm font-black text-[var(--color-text)] shadow-sm transition hover:bg-[var(--color-surface-soft)] disabled:opacity-50"
                   >
                     <GoogleIcon />
                     {loadingProvider === "google"
@@ -207,11 +228,11 @@ export default function LoginClient({ locale }: LoginClientProps) {
                 </div>
 
                 <div className="my-6 flex items-center gap-3">
-                  <div className="h-px flex-1 bg-gray-100" />
-                  <span className="text-xs font-bold text-gray-400">
+                  <div className="h-px flex-1 bg-[var(--color-border)]" />
+                  <span className="text-xs font-black text-[var(--color-muted)]">
                     {labels.or}
                   </span>
-                  <div className="h-px flex-1 bg-gray-100" />
+                  <div className="h-px flex-1 bg-[var(--color-border)]" />
                 </div>
               </>
             )}
@@ -220,7 +241,7 @@ export default function LoginClient({ locale }: LoginClientProps) {
               <button
                 type="button"
                 onClick={() => changeMode("login")}
-                className="mb-5 inline-flex items-center gap-2 rounded-full bg-gray-50 px-4 py-2 text-sm font-bold text-gray-700"
+                className="mb-5 inline-flex items-center gap-2 rounded-full bg-[var(--color-primary-soft)] px-4 py-2 text-sm font-black text-[var(--color-primary)]"
               >
                 <ArrowLeft size={16} />
                 {t.auth.backToLogin}
@@ -230,57 +251,56 @@ export default function LoginClient({ locale }: LoginClientProps) {
             <form onSubmit={handleEmailSubmit} className="space-y-4">
               {isRegister && (
                 <div>
-                  <label className="mb-2 block text-sm font-bold text-gray-800">
+                  <label className="mb-2 block text-sm font-black text-[var(--color-text)]">
                     {t.auth.name}
                   </label>
 
-                  <div className="flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-4">
-                    <User size={18} className="text-gray-400" />
+                  <div className="flex items-center gap-3 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-4">
+                    <User size={18} className="text-[var(--color-muted)]" />
 
                     <input
-                      type="text"
                       value={name}
                       onChange={(event) => setName(event.target.value)}
                       placeholder={labels.namePlaceholder}
                       required={isRegister}
-                      className="w-full bg-transparent text-sm text-gray-900 placeholder:text-gray-400"
+                      className="w-full bg-transparent text-sm font-semibold text-[var(--color-text)] placeholder:text-gray-400 focus:outline-none"
                     />
                   </div>
                 </div>
               )}
 
               <div>
-                <label className="mb-2 block text-sm font-bold text-gray-800">
+                <label className="mb-2 block text-sm font-black text-[var(--color-text)]">
                   {t.auth.email}
                 </label>
 
-                <div className="flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-4">
-                  <Mail size={18} className="text-gray-400" />
+                <div className="flex items-center gap-3 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-4">
+                  <Mail size={18} className="text-[var(--color-muted)]" />
 
                   <input
-                    type="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
-                    placeholder="you@example.com"
+                    type="email"
+                    placeholder="name@email.com"
                     required
-                    className="w-full bg-transparent text-sm text-gray-900 placeholder:text-gray-400"
+                    className="w-full bg-transparent text-sm font-semibold text-[var(--color-text)] placeholder:text-gray-400 focus:outline-none"
                   />
                 </div>
               </div>
 
               {!isReset && (
                 <div>
-                  <label className="mb-2 block text-sm font-bold text-gray-800">
+                  <label className="mb-2 block text-sm font-black text-[var(--color-text)]">
                     {t.auth.password}
                   </label>
 
-                  <div className="flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-4">
-                    <Lock size={18} className="text-gray-400" />
+                  <div className="flex items-center gap-3 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-4">
+                    <Lock size={18} className="text-[var(--color-muted)]" />
 
                     <input
-                      type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
+                      type={showPassword ? "text" : "password"}
                       placeholder={
                         isRegister
                           ? labels.passwordRegisterPlaceholder
@@ -288,13 +308,13 @@ export default function LoginClient({ locale }: LoginClientProps) {
                       }
                       required={!isReset}
                       minLength={6}
-                      className="w-full bg-transparent text-sm text-gray-900 placeholder:text-gray-400"
+                      className="w-full bg-transparent text-sm font-semibold text-[var(--color-text)] placeholder:text-gray-400 focus:outline-none"
                     />
 
                     <button
                       type="button"
                       onClick={() => setShowPassword((value) => !value)}
-                      className="text-gray-400"
+                      className="text-[var(--color-muted)] transition hover:text-[var(--color-primary)]"
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -304,7 +324,7 @@ export default function LoginClient({ locale }: LoginClientProps) {
                     <button
                       type="button"
                       onClick={() => changeMode("reset")}
-                      className="mt-3 text-sm font-bold text-gray-700 hover:text-black"
+                      className="mt-3 text-sm font-black text-[var(--color-primary)] hover:text-[var(--color-primary-dark)]"
                     >
                       {t.auth.forgotPassword}
                     </button>
@@ -313,20 +333,20 @@ export default function LoginClient({ locale }: LoginClientProps) {
               )}
 
               {errorMessage && (
-                <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold leading-6 text-red-600">
+                <div className="rounded-[18px] bg-red-50 px-4 py-3 text-sm font-bold leading-6 text-red-600">
                   {errorMessage}
                 </div>
               )}
 
               {successMessage && (
-                <div className="rounded-2xl bg-green-50 px-4 py-3 text-sm font-bold leading-6 text-green-700">
+                <div className="rounded-[18px] bg-green-50 px-4 py-3 text-sm font-bold leading-6 text-green-700">
                   {successMessage}
                 </div>
               )}
 
               <button
                 disabled={loadingProvider !== null}
-                className="w-full rounded-2xl bg-black px-5 py-4 text-sm font-black text-white shadow-sm transition hover:bg-gray-800 disabled:opacity-50"
+                className="w-full rounded-[18px] bg-[var(--color-primary)] px-5 py-4 text-sm font-black text-white shadow-[var(--shadow-button)] transition hover:bg-[var(--color-primary-dark)] disabled:opacity-50"
               >
                 {loadingProvider === "email" || loadingProvider === "reset"
                   ? isReset
@@ -343,7 +363,7 @@ export default function LoginClient({ locale }: LoginClientProps) {
             </form>
 
             {!isReset && (
-              <p className="mt-5 text-center text-xs leading-5 text-gray-400">
+              <p className="mt-5 text-center text-xs font-medium leading-5 text-[var(--color-muted)]">
                 {labels.helpText}
               </p>
             )}
@@ -356,7 +376,7 @@ export default function LoginClient({ locale }: LoginClientProps) {
 
 function GoogleIcon() {
   return (
-    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-sm font-black text-gray-900">
+    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-sm font-black text-[var(--color-text)] ring-1 ring-[var(--color-border)]">
       G
     </span>
   );

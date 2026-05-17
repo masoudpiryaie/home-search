@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Suspense, useState } from "react";
 import {
   Building2,
   Heart,
@@ -44,7 +44,7 @@ function cn(...classes: Array<string | false | null | undefined>) {
 
 export default function Navbar() {
   const { user, isAdmin, logout } = useAuth();
-
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const currentLocale = getCurrentLocale(pathname);
   const t = getDictionary(currentLocale);
@@ -74,10 +74,10 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-[var(--color-bg)]/80 px-3 pt-3 backdrop-blur-xl md:px-5 md:pt-4">
+      <header className="md:sticky top-0 z-50 bg-[var(--color-bg)]/80 px-3 pt-3 backdrop-blur-xl md:px-5 md:pt-4">
         <div
           dir={isRtl ? "rtl" : "ltr"}
-          className="mx-auto flex h-[76px] max-w-[1488px] items-center justify-between rounded-[26px] border border-[var(--color-border)] bg-white/95 px-4 shadow-[0_10px_35px_rgba(15,23,42,0.08)] backdrop-blur-2xl md:h-[86px] md:px-6"
+          className="mx-auto flex h-[76px] max-w-[1488px] items-center justify-between rounded-[26px] border border-[var(--color-border)] bg-white/95 px-4 shadow-[0_10px_35px_rgba(15,23,42,0.08)] backdrop-blur-3xl md:h-[86px] md:px-6"
         >
           <Link href={homeHref} className="group flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center text-[var(--color-primary)] transition group-hover:scale-105 md:h-12 md:w-12">
@@ -224,7 +224,7 @@ export default function Navbar() {
             {!isAdminRoute && (
               <Link
                 href={localizedHref(currentLocale, "/submit-property")}
-                className="inline-flex h-11 items-center gap-2 rounded-[14px] bg-[var(--color-accent)] px-4 text-sm font-black text-white shadow-[var(--shadow-button)]"
+                className="inline-flex h-11 items-center gap-2 rounded-[14px] bg-[var(--color-accent)] px-3 text-xs font-black text-white shadow-[var(--shadow-button)]"
               >
                 <PlusCircle size={17} />
                 {t.nav.submitProperty}
@@ -232,8 +232,10 @@ export default function Navbar() {
             )}
             <button
               type="button"
+              onClick={() => setIsMobileMenuOpen((prev) => !prev)}
               className="inline-flex h-11 w-11 items-center justify-center rounded-[14px] border border-[var(--color-border)] bg-white text-[var(--color-text)] shadow-sm"
               aria-label="Menu"
+              aria-expanded={isMobileMenuOpen}
             >
               <Menu size={22} />
             </button>
@@ -249,7 +251,128 @@ export default function Navbar() {
           </div>
         </div>
       </header>
+      {isMobileMenuOpen && (
+        <div
+          dir={isRtl ? "rtl" : "ltr"}
+          className="fixed left-3 right-3 top-[92px] z-50 rounded-[24px] border border-[var(--color-border)] bg-white/95 p-3 shadow-[0_18px_45px_rgba(15,23,42,0.14)] backdrop-blur-2xl md:hidden"
+        >
+          <div className="flex flex-col gap-1">
+            {!isAdminRoute && (
+              <>
+                <MobileDropdownLink
+                  href={localizedHref(currentLocale, "/")}
+                  active={pathname === localizedHref(currentLocale, "/")}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {t.nav.home}
+                </MobileDropdownLink>
 
+                <MobileDropdownLink
+                  href={`${localizedHref(currentLocale, "/properties")}?type=rent`}
+                  active={false}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {t.nav.rent}
+                </MobileDropdownLink>
+
+                <MobileDropdownLink
+                  href={`${localizedHref(currentLocale, "/properties")}?type=sale`}
+                  active={false}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {t.nav.buy}
+                </MobileDropdownLink>
+
+                <MobileDropdownLink
+                  href={localizedHref(currentLocale, "/saved")}
+                  active={isPublicActive("/saved")}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {t.nav.saved}
+                </MobileDropdownLink>
+
+                {user && (
+                  <MobileDropdownLink
+                    href={localizedHref(currentLocale, "/my-listings")}
+                    active={isPublicActive("/my-listings")}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {t.nav.myListings}
+                  </MobileDropdownLink>
+                )}
+
+                {isAdmin && (
+                  <MobileDropdownLink
+                    href="/admin"
+                    active={false}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {t.nav.admin}
+                  </MobileDropdownLink>
+                )}
+
+                <div className="my-2 h-px bg-[var(--color-border)]" />
+
+                <Suspense fallback={null}>
+                  <LanguageSwitcher />
+                </Suspense>
+              </>
+            )}
+
+            {isAdminRoute && (
+              <>
+                <MobileDropdownLink
+                  href="/admin"
+                  active={pathname === "/admin"}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Dashboard
+                </MobileDropdownLink>
+
+                <MobileDropdownLink
+                  href="/admin/properties"
+                  active={isAdminActive("/admin/properties")}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Properties
+                </MobileDropdownLink>
+
+                <MobileDropdownLink
+                  href="/admin/inquiries"
+                  active={isAdminActive("/admin/inquiries")}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Inquiries
+                </MobileDropdownLink>
+              </>
+            )}
+
+            <div className="my-2 h-px bg-[var(--color-border)]" />
+
+            {user ? (
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsMobileMenuOpen(false);
+                  await handleLogout();
+                }}
+                className="flex w-full items-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold text-red-600 transition hover:bg-red-50"
+              >
+                <LogOut size={18} />
+                {isAdminRoute ? "Logout" : t.nav.logout}
+              </button>
+            ) : (
+              <MobileDropdownLink
+                href={localizedHref(currentLocale, "/login")}
+                active={isPublicActive("/login")}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {t.nav.login}
+              </MobileDropdownLink>
+            )}
+          </div>
+        </div>
+      )}
       {!isAdminRoute && (
         <nav
           dir={isRtl ? "rtl" : "ltr"}
@@ -385,6 +508,32 @@ function MobileNavLink({
     >
       {icon}
       <span className="max-w-[72px] truncate">{label}</span>
+    </Link>
+  );
+}
+function MobileDropdownLink({
+  href,
+  active,
+  onClick,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className={cn(
+        "flex items-center rounded-2xl px-4 py-3 text-sm font-bold transition",
+        active
+          ? "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+          : "text-[var(--color-text)] hover:bg-gray-50 hover:text-[var(--color-primary)]",
+      )}
+    >
+      {children}
     </Link>
   );
 }

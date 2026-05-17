@@ -57,7 +57,7 @@ export default function SubmitPropertyClient({
           {t.common.backHome}
         </Link>
 
-        <section className="mb-6 rounded-[2rem] bg-black p-6 text-white md:p-8">
+        <section className="mb-6 rounded-[2rem] bg-[var(--color-primary)] p-6 text-white md:p-8">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div>
               <p className="text-sm font-medium text-white/60">

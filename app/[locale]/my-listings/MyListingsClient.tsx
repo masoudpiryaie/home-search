@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Building2,
   CheckCircle2,
   Clock3,
+  Eye,
   Home,
   PlusCircle,
   XCircle,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 import LoadingScreen from "@/app/components/LoadingScreen";
 import { getMyProperties } from "@/app/lib/propertyService";
@@ -18,6 +19,7 @@ import { getDictionary, type Locale } from "@/app/lib/i18n";
 import { useAuth } from "@/app/context/AuthContext";
 import type { Property } from "@/app/types/property";
 import { getLocalizedText } from "@/app/lib/localizedText";
+
 type MyListingsClientProps = {
   locale: Locale;
 };
@@ -27,9 +29,11 @@ export default function MyListingsClient({ locale }: MyListingsClientProps) {
   const { user, loading: authLoading } = useAuth();
   const t = getDictionary(locale);
   const labels = getLabels(locale);
+  const isRtl = locale === "fa";
 
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
+
   async function loadMyProperties(userId: string) {
     setLoading(true);
 
@@ -71,87 +75,97 @@ export default function MyListingsClient({ locale }: MyListingsClientProps) {
   ).length;
 
   return (
-    <main className="min-h-screen bg-[#f7f7f4] px-4 py-6 md:px-6 md:py-10">
-      <div className="mx-auto max-w-7xl">
-        <section className="mb-6 rounded-[2rem] bg-black p-6 text-white md:p-8">
-          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-sm font-medium text-white/60">
-                {labels.myAccount}
-              </p>
+    <main
+      dir={isRtl ? "rtl" : "ltr"}
+      className="min-h-screen bg-[var(--color-bg)] px-3 pb-28 pt-4 md:px-5 md:pb-14 md:pt-6"
+    >
+      <div className="mx-auto max-w-[1488px]">
+        <section className="mb-5 overflow-hidden rounded-[30px] border border-[var(--color-border)] bg-white shadow-[var(--shadow-shell)] md:mb-6 md:rounded-[34px]">
+          <div className="relative overflow-hidden bg-[var(--color-primary)] px-5 py-7 text-white md:px-8 md:py-9">
+            <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
+            <div className="absolute -bottom-24 left-10 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
 
-              <h1 className="mt-2 text-3xl font-black tracking-tight md:text-5xl">
-                {t.nav.myListings}
-              </h1>
+            <div className="relative flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="inline-flex rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white/80 backdrop-blur-md md:text-sm">
+                  {labels.myAccount}
+                </p>
 
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60 md:text-base">
-                {labels.subtitle}
-              </p>
+                <h1 className="mt-4 text-[30px] font-black leading-tight tracking-[-0.04em] md:text-[46px]">
+                  {t.nav.myListings}
+                </h1>
+
+                <p className="mt-3 max-w-2xl text-sm font-medium leading-7 text-white/75 md:text-base">
+                  {labels.subtitle}
+                </p>
+              </div>
+
+              <Link
+                href={`/${locale}/submit-property`}
+                className="inline-flex h-14 items-center justify-center gap-2 rounded-[18px] bg-white px-5 text-sm font-black text-[var(--color-primary)] shadow-[0_14px_34px_rgba(16,24,40,0.16)] transition hover:-translate-y-0.5 hover:bg-[var(--color-primary-soft)]"
+              >
+                <PlusCircle size={18} />
+                {labels.submitNew}
+              </Link>
             </div>
-
-            <Link
-              href={`/${locale}/submit-property`}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-4 text-sm font-bold text-black transition hover:bg-gray-100"
-            >
-              <PlusCircle size={18} />
-              {labels.submitNew}
-            </Link>
           </div>
-        </section>
 
-        <section className="mb-6 grid gap-3 sm:grid-cols-3">
-          <StatCard
-            label={labels.total}
-            value={properties.length}
-            icon={<Building2 size={22} />}
-          />
-
-          <StatCard
-            label={labels.pending}
-            value={pendingCount}
-            icon={<Clock3 size={22} />}
-          />
-
-          <StatCard
-            label={labels.active}
-            value={activeCount}
-            icon={<CheckCircle2 size={22} />}
-          />
-        </section>
-
-        {properties.length === 0 ? (
-          <div className="rounded-[2rem] bg-white p-8 text-center shadow-sm">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-50">
-              <Home className="text-gray-400" size={26} />
-            </div>
-
-            <p className="mt-4 text-lg font-bold text-gray-950">
-              {labels.noListings}
-            </p>
-
-            <p className="mt-2 text-sm text-gray-500">
-              {labels.noListingsText}
-            </p>
-
-            <Link
-              href={`/${locale}/submit-property`}
-              className="mt-6 inline-flex items-center justify-center gap-2 rounded-2xl bg-black px-5 py-3 text-sm font-bold text-white"
-            >
-              <PlusCircle size={17} />
-              {t.nav.submitProperty}
-            </Link>
-          </div>
-        ) : (
-          <div className="grid gap-4">
-            {properties.map((property) => (
-              <MyListingCard
-                key={property.id}
-                property={property}
-                locale={locale}
+          <div className="bg-[#fffdf9] px-4 py-5 md:px-6 md:py-6">
+            <section className="mb-6 grid gap-3 sm:grid-cols-3">
+              <StatCard
+                label={labels.total}
+                value={properties.length}
+                icon={<Building2 size={22} />}
               />
-            ))}
+
+              <StatCard
+                label={labels.pending}
+                value={pendingCount}
+                icon={<Clock3 size={22} />}
+              />
+
+              <StatCard
+                label={labels.active}
+                value={activeCount}
+                icon={<CheckCircle2 size={22} />}
+              />
+            </section>
+
+            {properties.length === 0 ? (
+              <div className="rounded-[28px] border border-[var(--color-border)] bg-white p-8 text-center shadow-[var(--shadow-card)]">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[22px] bg-[var(--color-primary-soft)]">
+                  <Home className="text-[var(--color-primary)]" size={28} />
+                </div>
+
+                <p className="mt-4 text-xl font-black text-[var(--color-text)]">
+                  {labels.noListings}
+                </p>
+
+                <p className="mx-auto mt-2 max-w-md text-sm font-medium leading-6 text-[var(--color-muted)]">
+                  {labels.noListingsText}
+                </p>
+
+                <Link
+                  href={`/${locale}/submit-property`}
+                  className="mt-6 inline-flex h-13 items-center justify-center gap-2 rounded-[17px] bg-[var(--color-primary)] px-5 py-3 text-sm font-black text-white shadow-[var(--shadow-button)] transition hover:bg-[var(--color-primary-dark)]"
+                >
+                  <PlusCircle size={17} />
+                  {t.nav.submitProperty}
+                </Link>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {properties.map((property) => (
+                  <MyListingCard
+                    key={property.id}
+                    property={property}
+                    locale={locale}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </section>
       </div>
     </main>
   );
@@ -164,17 +178,20 @@ function StatCard({
 }: {
   label: string;
   value: number;
-  icon: React.ReactNode;
+  icon: ReactNode;
 }) {
   return (
-    <div className="rounded-[1.7rem] bg-white p-5 shadow-sm">
+    <div className="rounded-[24px] border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-card)]">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-gray-500">{label}</p>
-          <p className="mt-2 text-3xl font-black text-gray-950">{value}</p>
+          <p className="text-sm font-bold text-[var(--color-muted)]">{label}</p>
+
+          <p className="mt-2 text-3xl font-black tracking-[-0.03em] text-[var(--color-text)]">
+            {value}
+          </p>
         </div>
 
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-50 text-gray-900">
+        <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-[var(--color-primary-soft)] text-[var(--color-primary)]">
           {icon}
         </div>
       </div>
@@ -192,10 +209,11 @@ function MyListingCard({
   const mainImage = property.images?.[0]?.url;
   const labels = getLabels(locale);
   const title = getLocalizedText(property.title, locale);
+
   return (
-    <div className="rounded-[1.7rem] bg-white p-4 shadow-sm">
-      <div className="flex gap-4">
-        <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-gray-100 md:h-28 md:w-36">
+    <article className="rounded-[26px] border border-[var(--color-border)] bg-white p-3 shadow-[var(--shadow-card)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_48px_rgba(16,24,40,0.12)] md:p-4">
+      <div className="flex flex-col gap-4 md:flex-row">
+        <div className="h-44 w-full shrink-0 overflow-hidden rounded-[22px] bg-gray-100 md:h-32 md:w-44">
           {mainImage ? (
             <img
               src={mainImage}
@@ -203,20 +221,20 @@ function MyListingCard({
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-xs text-gray-400">
+            <div className="flex h-full items-center justify-center text-xs font-bold text-[var(--color-muted)]">
               {labels.noImage}
             </div>
           )}
         </div>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-            <div>
-              <p className="line-clamp-1 text-base font-black text-gray-950 md:text-lg">
+        <div className="min-w-0 flex-1 px-1 pb-1 md:px-0">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0">
+              <p className="line-clamp-1 text-lg font-black tracking-[-0.02em] text-[var(--color-text)]">
                 {title}
               </p>
 
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm font-semibold text-[var(--color-muted)]">
                 {property.location?.city}
                 {property.location?.district
                   ? `, ${property.location.district}`
@@ -227,36 +245,36 @@ function MyListingCard({
             <StatusBadge status={property.status} locale={locale} />
           </div>
 
-          <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium text-gray-600">
-            <span className="rounded-full bg-gray-50 px-3 py-1 capitalize">
+          <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold text-[var(--color-text)]/75">
+            <span className="rounded-full bg-[var(--color-surface-soft)] px-3 py-1.5 capitalize ring-1 ring-[var(--color-border)]">
               {getListingTypeLabel(property.listingType, locale)}
             </span>
 
-            <span className="rounded-full bg-gray-50 px-3 py-1 capitalize">
+            <span className="rounded-full bg-[var(--color-surface-soft)] px-3 py-1.5 capitalize ring-1 ring-[var(--color-border)]">
               {getPropertyTypeLabel(property.propertyType, locale)}
             </span>
 
-            <span className="rounded-full bg-gray-50 px-3 py-1">
+            <span className="rounded-full bg-[var(--color-surface-soft)] px-3 py-1.5 ring-1 ring-[var(--color-border)]">
               {property.details?.area} m²
             </span>
 
-            <span className="rounded-full bg-gray-50 px-3 py-1">
+            <span className="rounded-full bg-[var(--color-surface-soft)] px-3 py-1.5 ring-1 ring-[var(--color-border)]">
               {property.details?.rooms} {labels.rooms}
             </span>
 
-            <span className="rounded-full bg-gray-50 px-3 py-1">
+            <span className="rounded-full bg-[var(--color-primary-soft)] px-3 py-1.5 text-[var(--color-primary)]">
               {property.price?.toLocaleString("de-DE")} €
             </span>
           </div>
 
           {property.status === "pending" && (
-            <p className="mt-4 rounded-2xl bg-orange-50 px-4 py-3 text-xs font-bold leading-5 text-orange-700">
+            <p className="mt-4 rounded-[18px] bg-orange-50 px-4 py-3 text-xs font-bold leading-5 text-orange-700">
               {labels.pendingText}
             </p>
           )}
 
           {property.status === "rejected" && (
-            <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-xs font-bold leading-5 text-red-700">
+            <div className="mt-4 rounded-[18px] bg-red-50 px-4 py-3 text-xs font-bold leading-5 text-red-700">
               <p>{labels.rejectedText}</p>
 
               {property.review?.note && (
@@ -268,14 +286,15 @@ function MyListingCard({
           {property.status === "active" && property.id && (
             <Link
               href={`/${locale}/properties/${property.id}`}
-              className="mt-4 inline-flex rounded-xl bg-black px-4 py-2 text-xs font-bold text-white"
+              className="mt-4 inline-flex items-center gap-2 rounded-[15px] bg-[var(--color-primary)] px-4 py-2.5 text-xs font-black text-white shadow-[var(--shadow-button)] transition hover:bg-[var(--color-primary-dark)]"
             >
+              <Eye size={15} />
               {labels.viewLive}
             </Link>
           )}
         </div>
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -312,7 +331,7 @@ function StatusBadge({
 
   return (
     <span
-      className={`inline-flex w-fit items-center gap-1 rounded-full px-3 py-1 text-xs font-bold capitalize ${className}`}
+      className={`inline-flex w-fit items-center gap-1 rounded-full px-3 py-1.5 text-xs font-black capitalize ${className}`}
     >
       <Icon size={14} />
       {getStatusLabel(status, locale)}

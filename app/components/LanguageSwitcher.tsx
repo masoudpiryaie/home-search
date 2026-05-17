@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Check, ChevronDown, Languages } from "lucide-react";
+import { Check, ChevronDown, Earth, Languages } from "lucide-react";
 
 import { locales, type Locale } from "@/app/lib/i18n";
 
@@ -100,14 +100,12 @@ export default function LanguageSwitcher() {
         aria-expanded={open}
       >
         <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-50">
-          <Languages size={16} className="text-gray-500" />
+          <Earth size={16} className="text-gray-500" />
         </span>
 
         <span className="hidden sm:inline">{shortLabels[currentLocale]}</span>
 
-        <span className="sm:hidden">
-          {languageFlags[currentLocale]} {shortLabels[currentLocale]}
-        </span>
+        <span className="sm:hidden">{shortLabels[currentLocale]}</span>
 
         <ChevronDown
           size={16}
@@ -118,7 +116,7 @@ export default function LanguageSwitcher() {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-12 z-[80] w-48 overflow-hidden rounded-3xl border border-black/5 bg-white p-2 shadow-2xl shadow-black/15 backdrop-blur-xl"
+          className="absolute right-0 top-12 z-[80] w-28 overflow-hidden rounded-3xl border border-black/5 bg-white p-2 shadow-2xl shadow-black/15 backdrop-blur-xl"
         >
           <div className="px-3 pb-2 pt-1 text-xs font-bold uppercase tracking-wide text-gray-400">
             Language
@@ -140,8 +138,7 @@ export default function LanguageSwitcher() {
                 }`}
               >
                 <span className="flex items-center gap-3">
-                  <span className="text-lg">{languageFlags[locale]}</span>
-                  <span>{languageLabels[locale]}</span>
+                  <span className="text-xs">{shortLabels[locale]}</span>
                 </span>
 
                 {active && <Check size={17} />}

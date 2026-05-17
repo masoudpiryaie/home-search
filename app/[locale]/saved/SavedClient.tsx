@@ -18,6 +18,7 @@ type SavedClientProps = {
 export default function SavedClient({ locale }: SavedClientProps) {
   const t = getDictionary(locale);
   const labels = getLabels(locale);
+  const isRtl = locale === "fa";
 
   const [properties, setProperties] = useState<Property[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
@@ -61,66 +62,81 @@ export default function SavedClient({ locale }: SavedClientProps) {
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#f7f7f4] px-4 py-6 md:px-6 md:py-10">
-      <div className="mx-auto max-w-7xl">
-        <section className="mb-6 rounded-[2rem] bg-black p-6 text-white md:p-8">
-          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-sm font-medium text-white/60">
-                {labels.smallTitle}
-              </p>
+    <main
+      dir={isRtl ? "rtl" : "ltr"}
+      className="min-h-screen bg-[var(--color-bg)] px-3 pb-28 pt-4 md:px-5 md:pb-14 md:pt-6"
+    >
+      <div className="mx-auto max-w-[1488px]">
+        <section className="mb-5 overflow-hidden rounded-[30px] border border-[var(--color-border)] bg-white shadow-[var(--shadow-shell)] md:mb-6 md:rounded-[34px]">
+          <div className="relative overflow-hidden bg-[var(--color-primary)] px-5 py-7 text-white md:px-8 md:py-9">
+            <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
+            <div className="absolute -bottom-24 left-10 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
 
-              <h1 className="mt-2 text-3xl font-black tracking-tight md:text-5xl">
-                {t.nav.saved}
-              </h1>
+            <div className="relative flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="inline-flex rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white/80 backdrop-blur-md md:text-sm">
+                  {labels.smallTitle}
+                </p>
 
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-white/65 md:text-base">
-                {labels.subtitle}
-              </p>
+                <h1 className="mt-4 text-[30px] font-black leading-tight tracking-[-0.04em] md:text-[46px]">
+                  {t.nav.saved}
+                </h1>
+
+                <p className="mt-3 max-w-2xl text-sm font-medium leading-7 text-white/75 md:text-base">
+                  {labels.subtitle}
+                </p>
+              </div>
+
+              <div className="w-fit rounded-[22px] border border-white/10 bg-white/15 px-5 py-4 backdrop-blur-md">
+                <p className="text-sm font-semibold text-white/70">
+                  {labels.savedListings}
+                </p>
+
+                <p className="mt-1 text-4xl font-black">
+                  {loading ? "..." : savedProperties.length}
+                </p>
+              </div>
             </div>
+          </div>
 
-            <div className="rounded-[1.5rem] bg-white/10 p-4 backdrop-blur-md">
-              <p className="text-sm text-white/60">{labels.savedListings}</p>
-              <p className="mt-1 text-3xl font-black">
-                {loading ? "..." : savedProperties.length}
-              </p>
-            </div>
+          <div className="bg-[#fffdf9] px-4 py-5 md:px-6 md:py-6">
+            {loading ? (
+              <PropertiesGridSkeleton />
+            ) : savedProperties.length === 0 ? (
+              <div className="rounded-[28px] border border-[var(--color-border)] bg-white p-8 text-center shadow-[var(--shadow-card)]">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[22px] bg-[var(--color-primary-soft)]">
+                  <Heart className="text-[var(--color-primary)]" size={28} />
+                </div>
+
+                <p className="mt-4 text-xl font-black text-[var(--color-text)]">
+                  {labels.emptyTitle}
+                </p>
+
+                <p className="mx-auto mt-2 max-w-md text-sm font-medium leading-6 text-[var(--color-muted)]">
+                  {labels.emptyText}
+                </p>
+
+                <Link
+                  href={`/${locale}/properties?type=rent`}
+                  className="mt-6 inline-flex items-center justify-center gap-2 rounded-[17px] bg-[var(--color-primary)] px-5 py-3 text-sm font-black text-white shadow-[var(--shadow-button)] transition hover:bg-[var(--color-primary-dark)]"
+                >
+                  <Search size={17} />
+                  {labels.browse}
+                </Link>
+              </div>
+            ) : (
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {savedProperties.map((property) => (
+                  <PropertyCard
+                    key={property.id}
+                    property={property}
+                    locale={locale}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </section>
-
-        {loading ? (
-          <PropertiesGridSkeleton />
-        ) : savedProperties.length === 0 ? (
-          <div className="rounded-[2rem] bg-white p-8 text-center shadow-sm">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50">
-              <Heart className="text-red-500" size={26} />
-            </div>
-
-            <p className="mt-4 text-lg font-bold text-gray-900">
-              {labels.emptyTitle}
-            </p>
-
-            <p className="mt-2 text-sm text-gray-500">{labels.emptyText}</p>
-
-            <Link
-              href={`/${locale}/properties?type=rent`}
-              className="mt-6 inline-flex items-center justify-center gap-2 rounded-2xl bg-black px-5 py-3 text-sm font-bold text-white"
-            >
-              <Search size={17} />
-              {labels.browse}
-            </Link>
-          </div>
-        ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {savedProperties.map((property) => (
-              <PropertyCard
-                key={property.id}
-                property={property}
-                locale={locale}
-              />
-            ))}
-          </div>
-        )}
       </div>
     </main>
   );
