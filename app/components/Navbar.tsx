@@ -9,6 +9,7 @@ import {
   Home,
   LayoutDashboard,
   LogOut,
+  Menu,
   PlusCircle,
   Search,
   ShieldCheck,
@@ -48,6 +49,7 @@ export default function Navbar() {
   const currentLocale = getCurrentLocale(pathname);
   const t = getDictionary(currentLocale);
 
+  const isRtl = currentLocale === "fa";
   const isAdminRoute = pathname.startsWith("/admin");
 
   async function handleLogout() {
@@ -72,52 +74,63 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-black/5 bg-white/80 backdrop-blur-2xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6">
+      <header className="sticky top-0 z-50 bg-[var(--color-bg)]/80 px-3 pt-3 backdrop-blur-xl md:px-5 md:pt-4">
+        <div
+          dir={isRtl ? "rtl" : "ltr"}
+          className="mx-auto flex h-[76px] max-w-[1488px] items-center justify-between rounded-[26px] border border-[var(--color-border)] bg-white/95 px-4 shadow-[0_10px_35px_rgba(15,23,42,0.08)] backdrop-blur-2xl md:h-[86px] md:px-6"
+        >
           <Link href={homeHref} className="group flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-black text-white shadow-sm transition group-hover:scale-105">
-              <Home size={19} />
+            <div className="flex h-11 w-11 items-center justify-center text-[var(--color-primary)] transition group-hover:scale-105 md:h-12 md:w-12">
+              <Home size={38} strokeWidth={2.2} />
             </div>
 
             <div className="leading-tight">
-              <p className="text-base font-black tracking-tight text-gray-950">
+              <p className="text-[18px] font-black tracking-[-0.04em] text-[var(--color-text)] md:text-[22px]">
                 {isAdminRoute ? "HomeRent Admin" : t.common.siteName}
               </p>
 
-              <p className="hidden text-xs font-medium text-gray-500 sm:block">
-                {isAdminRoute
-                  ? "Manage listings"
-                  : currentLocale === "fa"
-                    ? "اجاره و خرید خانه"
-                    : currentLocale === "de"
-                      ? "Immobilien mieten & kaufen"
-                      : "Rent & buy homes"}
+              <p className="hidden text-xs font-semibold text-[var(--color-muted)] sm:block">
+                {isAdminRoute ? "Manage listings" : t.nav.tagline}
               </p>
             </div>
           </Link>
 
-          <nav className="hidden items-center gap-1 rounded-full border border-black/5 bg-gray-50/80 p-1 md:flex">
+          <nav className="hidden items-center gap-8 lg:flex">
             {!isAdminRoute && (
               <>
                 <DesktopNavLink
+                  href={localizedHref(currentLocale, "/")}
+                  active={pathname === localizedHref(currentLocale, "/")}
+                >
+                  {t.nav.home}
+                </DesktopNavLink>
+
+                <DesktopNavLink
                   href={`${localizedHref(currentLocale, "/properties")}?type=rent`}
-                  active={isPublicActive("/properties")}
+                  active={false}
                 >
                   {t.nav.rent}
                 </DesktopNavLink>
 
                 <DesktopNavLink
                   href={`${localizedHref(currentLocale, "/properties")}?type=sale`}
-                  active={isPublicActive("/properties")}
+                  active={false}
                 >
                   {t.nav.buy}
                 </DesktopNavLink>
+
+                {/* <DesktopNavLink href="#" active={false}>
+                  {t.nav.agents}
+                </DesktopNavLink> */}
 
                 <DesktopNavLink
                   href={localizedHref(currentLocale, "/saved")}
                   active={isPublicActive("/saved")}
                 >
-                  {t.nav.saved}
+                  <span className="inline-flex items-center gap-2">
+                    {t.nav.saved}
+                    <Heart size={18} />
+                  </span>
                 </DesktopNavLink>
 
                 {user && (
@@ -126,6 +139,12 @@ export default function Navbar() {
                     active={isPublicActive("/my-listings")}
                   >
                     {t.nav.myListings}
+                  </DesktopNavLink>
+                )}
+
+                {isAdmin && (
+                  <DesktopNavLink href="/admin" active={false}>
+                    {t.nav.admin}
                   </DesktopNavLink>
                 )}
               </>
@@ -152,15 +171,9 @@ export default function Navbar() {
                 </DesktopNavLink>
               </>
             )}
-
-            {isAdmin && !isAdminRoute && (
-              <DesktopNavLink href="/admin" active={false}>
-                Admin
-              </DesktopNavLink>
-            )}
           </nav>
 
-          <div className="hidden items-center gap-2 md:flex">
+          <div className="hidden items-center gap-3 md:flex">
             {!isAdminRoute && (
               <Suspense fallback={null}>
                 <LanguageSwitcher />
@@ -170,9 +183,9 @@ export default function Navbar() {
             {!isAdminRoute && (
               <Link
                 href={localizedHref(currentLocale, "/submit-property")}
-                className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-800"
+                className="inline-flex h-12 items-center gap-2 rounded-[14px] bg-[var(--color-accent)] px-5 text-sm font-black text-white shadow-[var(--shadow-button)] transition hover:-translate-y-0.5 hover:bg-[var(--color-accent-dark)]"
               >
-                <PlusCircle size={17} />
+                <PlusCircle size={18} />
                 {t.nav.submitProperty}
               </Link>
             )}
@@ -180,9 +193,9 @@ export default function Navbar() {
             {isAdminRoute && (
               <Link
                 href="/admin/properties/new"
-                className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-800"
+                className="inline-flex h-12 items-center gap-2 rounded-[14px] bg-[var(--color-accent)] px-5 text-sm font-black text-white shadow-[var(--shadow-button)] transition hover:-translate-y-0.5 hover:bg-[var(--color-accent-dark)]"
               >
-                <PlusCircle size={17} />
+                <PlusCircle size={18} />
                 Add property
               </Link>
             )}
@@ -191,17 +204,17 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm font-bold text-gray-800 transition hover:bg-gray-50"
+                className="inline-flex h-12 items-center gap-2 rounded-[14px] border border-[var(--color-border)] bg-white px-4 text-sm font-bold text-[var(--color-text)] shadow-sm transition hover:bg-gray-50"
               >
-                <LogOut size={17} />
+                <LogOut size={18} />
                 {isAdminRoute ? "Logout" : t.nav.logout}
               </button>
             ) : (
               <Link
                 href={localizedHref(currentLocale, "/login")}
-                className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm font-bold text-gray-800 transition hover:bg-gray-50"
+                className="inline-flex h-12 items-center gap-2 rounded-[14px] border border-[var(--color-border)] bg-white px-4 text-sm font-bold text-[var(--color-text)] shadow-sm transition hover:bg-gray-50"
               >
-                <User size={17} />
+                <User size={18} />
                 {t.nav.login}
               </Link>
             )}
@@ -209,30 +222,28 @@ export default function Navbar() {
 
           <div className="flex items-center gap-2 md:hidden">
             {!isAdminRoute && (
-              <Suspense fallback={null}>
-                <LanguageSwitcher />
-              </Suspense>
-            )}
-
-            {isAdminRoute ? (
-              <Link
-                href="/admin/properties/new"
-                className="inline-flex items-center gap-2 rounded-full bg-black px-4 py-2.5 text-sm font-bold text-white shadow-sm"
-              >
-                <PlusCircle size={16} />
-                Add
-              </Link>
-            ) : (
               <Link
                 href={localizedHref(currentLocale, "/submit-property")}
-                className="inline-flex items-center gap-2 rounded-full bg-black px-4 py-2.5 text-sm font-bold text-white shadow-sm"
+                className="inline-flex h-11 items-center gap-2 rounded-[14px] bg-[var(--color-accent)] px-4 text-sm font-black text-white shadow-[var(--shadow-button)]"
               >
-                <PlusCircle size={16} />
-                {currentLocale === "fa"
-                  ? "ثبت"
-                  : currentLocale === "de"
-                    ? "Anzeige"
-                    : "Submit"}
+                <PlusCircle size={17} />
+                {t.nav.submitProperty}
+              </Link>
+            )}
+            <button
+              type="button"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-[14px] border border-[var(--color-border)] bg-white text-[var(--color-text)] shadow-sm"
+              aria-label="Menu"
+            >
+              <Menu size={22} />
+            </button>
+            {isAdminRoute && (
+              <Link
+                href="/admin/properties/new"
+                className="inline-flex h-11 items-center gap-2 rounded-[14px] bg-[var(--color-accent)] px-4 text-sm font-black text-white shadow-[var(--shadow-button)]"
+              >
+                <PlusCircle size={17} />
+                Add
               </Link>
             )}
           </div>
@@ -240,42 +251,29 @@ export default function Navbar() {
       </header>
 
       {!isAdminRoute && (
-        <nav className="mobile-safe-bottom fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white/95 px-3 pb-2 pt-2 shadow-[0_-10px_30px_rgba(0,0,0,0.06)] backdrop-blur-2xl md:hidden">
-          <div className="mx-auto grid max-w-md grid-cols-5 items-end gap-1">
+        <nav
+          dir={isRtl ? "rtl" : "ltr"}
+          className="mobile-safe-bottom fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--color-border)] bg-white/95 px-4 pb-2 pt-2 shadow-[0_-12px_35px_rgba(15,23,42,0.08)] backdrop-blur-2xl md:hidden"
+        >
+          <div className="mx-auto grid max-w-md grid-cols-4 items-end gap-1">
             <MobileNavLink
               href={localizedHref(currentLocale, "/")}
               active={pathname === localizedHref(currentLocale, "/")}
-              icon={<Home size={20} />}
+              icon={<Home size={22} />}
               label={t.nav.home}
             />
 
             <MobileNavLink
               href={`${localizedHref(currentLocale, "/properties")}?type=rent`}
               active={isPublicActive("/properties")}
-              icon={<Search size={20} />}
-              label={t.nav.rent}
+              icon={<Search size={22} />}
+              label={t.nav.search}
             />
-
-            <Link
-              href={localizedHref(currentLocale, "/submit-property")}
-              className="relative -mt-7 flex flex-col items-center gap-1"
-            >
-              <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-black text-white shadow-xl shadow-black/20">
-                <PlusCircle size={24} />
-              </div>
-              <span className="text-[11px] font-black text-gray-900">
-                {currentLocale === "fa"
-                  ? "ثبت"
-                  : currentLocale === "de"
-                    ? "Anzeige"
-                    : "Submit"}
-              </span>
-            </Link>
 
             <MobileNavLink
               href={localizedHref(currentLocale, "/saved")}
               active={isPublicActive("/saved")}
-              icon={<Heart size={20} />}
+              icon={<Heart size={22} />}
               label={t.nav.saved}
             />
 
@@ -283,21 +281,15 @@ export default function Navbar() {
               <MobileNavLink
                 href={localizedHref(currentLocale, "/my-listings")}
                 active={isPublicActive("/my-listings")}
-                icon={<Building2 size={20} />}
-                label={
-                  currentLocale === "fa"
-                    ? "آگهی‌ها"
-                    : currentLocale === "de"
-                      ? "Meine"
-                      : "Mine"
-                }
+                icon={<Building2 size={22} />}
+                label={t.nav.mine}
               />
             ) : (
               <MobileNavLink
                 href={localizedHref(currentLocale, "/login")}
                 active={isPublicActive("/login")}
-                icon={<User size={20} />}
-                label={t.nav.login}
+                icon={<User size={22} />}
+                label={t.nav.profile}
               />
             )}
           </div>
@@ -305,35 +297,35 @@ export default function Navbar() {
       )}
 
       {isAdminRoute && (
-        <nav className="mobile-safe-bottom fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white/95 px-3 pb-2 pt-2 shadow-[0_-10px_30px_rgba(0,0,0,0.06)] backdrop-blur-2xl md:hidden">
+        <nav className="mobile-safe-bottom fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--color-border)] bg-white/95 px-4 pb-2 pt-2 shadow-[0_-12px_35px_rgba(15,23,42,0.08)] backdrop-blur-2xl md:hidden">
           <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
             <MobileNavLink
               href="/admin"
               active={pathname === "/admin"}
-              icon={<LayoutDashboard size={20} />}
+              icon={<LayoutDashboard size={22} />}
               label="Home"
             />
 
             <MobileNavLink
               href="/admin/properties"
               active={isAdminActive("/admin/properties")}
-              icon={<Building2 size={20} />}
+              icon={<Building2 size={22} />}
               label="Listings"
             />
 
             <MobileNavLink
               href="/admin/inquiries"
               active={isAdminActive("/admin/inquiries")}
-              icon={<ShieldCheck size={20} />}
+              icon={<ShieldCheck size={22} />}
               label="Leads"
             />
 
             <button
               type="button"
               onClick={handleLogout}
-              className="flex flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-bold text-gray-600 transition hover:bg-gray-50"
+              className="flex flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-bold text-[var(--color-muted)] transition hover:bg-gray-50"
             >
-              <LogOut size={20} />
+              <LogOut size={22} />
               Logout
             </button>
           </div>
@@ -356,13 +348,16 @@ function DesktopNavLink({
     <Link
       href={href}
       className={cn(
-        "rounded-full px-4 py-2 text-sm font-bold transition",
+        "relative text-sm font-bold transition",
         active
-          ? "bg-white text-gray-950 shadow-sm"
-          : "text-gray-600 hover:bg-white hover:text-gray-950",
+          ? "text-[var(--color-primary)]"
+          : "text-[var(--color-text)] hover:text-[var(--color-primary)]",
       )}
     >
       {children}
+      {active && (
+        <span className="absolute -bottom-[31px] left-1/2 h-[3px] w-8 -translate-x-1/2 rounded-full bg-[var(--color-primary)]" />
+      )}
     </Link>
   );
 }
@@ -384,12 +379,12 @@ function MobileNavLink({
       className={cn(
         "flex flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-bold transition",
         active
-          ? "bg-gray-950 text-white"
-          : "text-gray-600 hover:bg-gray-50 hover:text-gray-950",
+          ? "text-[var(--color-primary)]"
+          : "text-[var(--color-text)] hover:text-[var(--color-primary)]",
       )}
     >
       {icon}
-      <span className="max-w-[64px] truncate">{label}</span>
+      <span className="max-w-[72px] truncate">{label}</span>
     </Link>
   );
 }

@@ -1,19 +1,28 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f7f4;
-  --foreground: #171717;
+  --color-bg: #f6f1e8;
+  --color-surface: #ffffff;
+  --color-surface-soft: #fffdfa;
 
-  --primary: #111827;
-  --primary-soft: #1f2937;
+  --color-primary: #07525c;
+  --color-primary-dark: #043b43;
+  --color-primary-soft: #e8f3ef;
 
-  --accent: #c7a76c;
-  --accent-soft: #f3ead8;
+  --color-accent: #c9871f;
+  --color-accent-dark: #a96d13;
+  --color-accent-soft: #fff2dc;
 
-  --muted: #6b7280;
-  --border: #e5e7eb;
+  --color-text: #071827;
+  --color-muted: #667085;
+  --color-border: #e8e1d7;
 
-  --card: #ffffff;
+  --shadow-soft: 0 18px 60px rgba(15, 23, 42, 0.1);
+  --shadow-card: 0 10px 28px rgba(15, 23, 42, 0.08);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 html {
@@ -21,40 +30,94 @@ html {
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-persian), Arial, sans-serif;
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(255, 255, 255, 0.9),
+      transparent 34%
+    ),
+    linear-gradient(180deg, #fbf8f2 0%, var(--color-bg) 100%);
+  color: var(--color-text);
 }
 
 button,
-a,
-input,
-select,
-textarea {
-  -webkit-tap-highlight-color: transparent;
-}
-
 input,
 select,
 textarea {
   outline: none;
 }
 
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.theme-page {
+  background:
+    radial-gradient(
+      circle at 10% 8%,
+      rgba(255, 255, 255, 0.95),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 90% 18%,
+      rgba(255, 243, 223, 0.75),
+      transparent 30%
+    ),
+    linear-gradient(180deg, #fbf8f2 0%, #f7f3ec 100%);
+}
+
+.theme-shell {
+  border: 1px solid rgba(232, 227, 218, 0.9);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(18px);
+}
+
+.theme-card {
+  border: 1px solid rgba(232, 227, 218, 0.9);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.theme-primary-button {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-primary-dark)
+  );
+  color: white;
+  box-shadow: 0 12px 22px rgba(6, 79, 87, 0.22);
+}
+
+.theme-accent-button {
+  background: linear-gradient(
+    135deg,
+    var(--color-accent),
+    var(--color-accent-dark)
+  );
+  color: white;
+  box-shadow: var(--shadow-button);
+}
+
+.theme-muted-button {
+  border: 1px solid var(--color-border);
+  background: white;
+  color: var(--color-text);
+}
+
+.theme-badge {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.theme-input {
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+}
+
 .mobile-safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-@keyframes home-float {
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-  }
-
-  50% {
-    transform: translateY(-8px) scale(1.04);
-  }
-}
-
-.animate-home-float {
-  animation: home-float 1.4s ease-in-out infinite;
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
 }

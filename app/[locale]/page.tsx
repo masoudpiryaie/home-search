@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { isLocale, type Locale } from "../lib/i18n";
+import { isLocale, type Locale } from "@/app/lib/i18n";
 import HomeClient from "./HomeClient";
 
 export default async function HomePage({
