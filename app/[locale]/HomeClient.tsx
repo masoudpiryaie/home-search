@@ -98,7 +98,7 @@ export default function HomeClient({ locale }: HomeClientProps) {
               {t.home.badge}
             </div>
 
-            <h1 className="whitespace-pre-line text-[44px] font-black leading-[1.03] tracking-[-0.055em] text-[var(--color-text)] sm:text-[58px] md:text-[72px] lg:text-[76px]">
+            <h1 className="whitespace-pre-line text-[28px] font-black leading-[1.32] tracking-[-0.055em] text-[var(--color-text)] sm:text-[32px] md:text-[36px] lg:text-[48px]">
               {t.home.title}
             </h1>
 

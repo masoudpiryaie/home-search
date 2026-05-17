@@ -59,7 +59,7 @@ export const dictionary = {
       all: "All",
       house: "House",
       apartment: "Apartment",
-      room: "WG / Room",
+      room: "WG",
 
       bestOffers: "Featured Deals",
       seeAll: "See All",
@@ -230,7 +230,7 @@ export const dictionary = {
       all: "همه",
       house: "ویلا",
       apartment: "آپارتمان",
-      room: "اتاق اشتراکی",
+      room: "WG",
 
       bestOffers: "اکازیون‌ترین‌ها",
       seeAll: "مشاهده همه",
@@ -401,7 +401,7 @@ export const dictionary = {
       all: "Alle",
       house: "Haus",
       apartment: "Wohnung",
-      room: "WG-Zimmer",
+      room: "WG",
 
       bestOffers: "Top Angebote",
       seeAll: "Alle anzeigen",

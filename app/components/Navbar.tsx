@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import {
   Building2,
   Heart,
@@ -45,13 +45,44 @@ function cn(...classes: Array<string | false | null | undefined>) {
 export default function Navbar() {
   const { user, isAdmin, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const mobileMenuRef = useRef<HTMLDivElement | null>(null);
+  const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
   const pathname = usePathname();
   const currentLocale = getCurrentLocale(pathname);
   const t = getDictionary(currentLocale);
 
   const isRtl = currentLocale === "fa";
   const isAdminRoute = pathname.startsWith("/admin");
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
 
+    function handleClickOutside(event: MouseEvent | TouchEvent) {
+      const target = event.target as Node;
+
+      const clickedInsideMenu = mobileMenuRef.current?.contains(target);
+      const clickedOnMenuButton = mobileMenuButtonRef.current?.contains(target);
+
+      if (!clickedInsideMenu && !clickedOnMenuButton) {
+        setIsMobileMenuOpen(false);
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsMobileMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isMobileMenuOpen]);
   async function handleLogout() {
     try {
       await logout();
@@ -77,7 +108,7 @@ export default function Navbar() {
       <header className="md:sticky top-0 z-50 bg-[var(--color-bg)]/80 px-3 pt-3 backdrop-blur-xl md:px-5 md:pt-4">
         <div
           dir={isRtl ? "rtl" : "ltr"}
-          className="mx-auto flex h-[76px] max-w-[1488px] items-center justify-between rounded-[26px] border border-[var(--color-border)] bg-white/95 px-4 shadow-[0_10px_35px_rgba(15,23,42,0.08)] backdrop-blur-3xl md:h-[86px] md:px-6"
+          className="mx-auto flex h-[76px] max-w-[1488px] items-center justify-between rounded-[26px] border border-[var(--color-border)] bg-white/95 px-4 shadow-[0_10px_35px_rgba(15,23,42,0.08)] backdrop-blur-2xl md:h-[86px] md:px-6"
         >
           <Link href={homeHref} className="group flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center text-[var(--color-primary)] transition group-hover:scale-105 md:h-12 md:w-12">
@@ -231,6 +262,7 @@ export default function Navbar() {
               </Link>
             )}
             <button
+              ref={mobileMenuButtonRef}
               type="button"
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
               className="inline-flex h-11 w-11 items-center justify-center rounded-[14px] border border-[var(--color-border)] bg-white text-[var(--color-text)] shadow-sm"
@@ -253,6 +285,7 @@ export default function Navbar() {
       </header>
       {isMobileMenuOpen && (
         <div
+          ref={mobileMenuRef}
           dir={isRtl ? "rtl" : "ltr"}
           className="fixed left-3 right-3 top-[92px] z-50 rounded-[24px] border border-[var(--color-border)] bg-white/95 p-3 shadow-[0_18px_45px_rgba(15,23,42,0.14)] backdrop-blur-2xl md:hidden"
         >
