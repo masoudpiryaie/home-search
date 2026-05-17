@@ -11,7 +11,7 @@ import {
   Search,
   User,
 } from "lucide-react";
-
+import { Suspense } from "react";
 import { useAuth } from "../context/AuthContext";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { getDictionary, locales, type Locale } from "../lib/i18n";
@@ -142,7 +142,9 @@ export default function Navbar() {
               </>
             )}
 
-            <LanguageSwitcher />
+            <Suspense fallback={null}>
+              <LanguageSwitcher />
+            </Suspense>
 
             {user ? (
               <button
@@ -163,7 +165,9 @@ export default function Navbar() {
           </nav>
 
           <div className="flex items-center gap-2 md:hidden">
-            <LanguageSwitcher />
+            <Suspense fallback={null}>
+              <LanguageSwitcher />
+            </Suspense>
 
             {isAdmin ? (
               <Link

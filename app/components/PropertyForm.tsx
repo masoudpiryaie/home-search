@@ -1,16 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import {
+  Building2,
+  ChevronDown,
+  RotateCcw,
+  Search,
+  SlidersHorizontal,
+} from "lucide-react";
 
-import ImageUploader from "./ImageUploader";
-import { useAuth } from "../context/AuthContext";
-import { createProperty, updateProperty } from "../lib/propertyService";
-import { getZodErrorMessage, propertySchema } from "../lib/propertyValidation";
-import { getDictionary, type Locale } from "../lib/i18n";
-import type { Property, PropertyImage } from "../types/property";
-import { translatePropertyText } from "../lib/translateProperty";
-import { validateTextLanguage } from "../lib/languageValidation";
+import PropertyCard from "@/app/components/PropertyCard";
+import { PropertiesGridSkeleton } from "@/app/components/Skeletons";
+import { getPublicProperties } from "@/app/lib/propertyService";
+import { getDictionary, type Locale } from "@/app/lib/i18n";
+import type { ListingType, Property, PropertyType } from "@/app/types/property";
+
+type SortOption = "newest" | "lowest-price" | "highest-price" | "largest-area";
 
 type PropertyFormProps = {
   initialData?: Property;
@@ -20,39 +26,6 @@ type PropertyFormProps = {
   locale?: Locale;
 };
 
-const defaultFeatures = {
-  balcony: false,
-  garden: false,
-  elevator: false,
-  parking: false,
-  furnished: false,
-  petsAllowed: false,
-  cellar: false,
-  fittedKitchen: false,
-};
-
-function removeUndefinedValues<T extends Record<string, unknown>>(object: T) {
-  return Object.fromEntries(
-    Object.entries(object).filter(([, value]) => value !== undefined),
-  ) as T;
-}
-
-function optionalNumber(value: FormDataEntryValue | null) {
-  const rawValue = String(value || "").trim();
-
-  if (!rawValue) {
-    return undefined;
-  }
-
-  const numberValue = Number(rawValue);
-
-  if (Number.isNaN(numberValue)) {
-    return undefined;
-  }
-
-  return numberValue;
-}
-
 export default function PropertyForm({
   initialData,
   propertyId,
@@ -61,542 +34,500 @@ export default function PropertyForm({
   locale = "en",
 }: PropertyFormProps) {
   const router = useRouter();
-  const { user } = useAuth();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const t = getDictionary(locale);
 
-  const [images, setImages] = useState<PropertyImage[]>([]);
-  const [listingType, setListingType] = useState<"rent" | "sale">("rent");
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const type = searchParams.get("type") as ListingType | null;
 
-  useEffect(() => {
-    if (initialData) {
-      setImages(initialData.images || []);
-      setListingType(initialData.listingType || "rent");
+  const cityFromUrl = searchParams.get("city") || "";
+  const minPriceFromUrl = searchParams.get("minPrice") || "";
+  const maxPriceFromUrl = searchParams.get("maxPrice") || "";
+  const minAreaFromUrl = searchParams.get("minArea") || "";
+  const roomsFromUrl = searchParams.get("rooms") || "";
+  const propertyTypeFromUrl =
+    (searchParams.get("propertyType") as PropertyType | null) || "";
+  const sortFromUrl =
+    (searchParams.get("sort") as SortOption | null) || "newest";
+
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  const [city, setCity] = useState(cityFromUrl);
+  const [minPrice, setMinPrice] = useState(minPriceFromUrl);
+  const [maxPrice, setMaxPrice] = useState(maxPriceFromUrl);
+  const [minArea, setMinArea] = useState(minAreaFromUrl);
+  const [rooms, setRooms] = useState(roomsFromUrl);
+  const [propertyType, setPropertyType] = useState<PropertyType | "">(
+    propertyTypeFromUrl,
+  );
+  const [sort, setSort] = useState<SortOption>(sortFromUrl);
+
+  function updateUrl(nextValues?: {
+    city?: string;
+    minPrice?: string;
+    maxPrice?: string;
+    minArea?: string;
+    rooms?: string;
+    propertyType?: string;
+    sort?: string;
+  }) {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (!params.get("type")) {
+      params.set("type", type || "rent");
     }
-  }, [initialData]);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    setLoading(true);
-    setErrorMessage("");
-
-    const formData = new FormData(event.currentTarget);
-
-    const selectedListingType = formData.get("listingType") as "rent" | "sale";
-    const price = Number(formData.get("price") || 0);
-    const area = Number(formData.get("area") || 0);
-    const rawTitle = String(formData.get("title") || "").trim();
-    const rawDescription = String(formData.get("description") || "").trim();
-    const languageValidation = validateTextLanguage({
-      locale,
-      title: rawTitle,
-      description: rawDescription,
-    });
-
-    if (!languageValidation.valid) {
-      setErrorMessage(languageValidation.message);
-      setLoading(false);
-      return;
-    }
-
-    const property: Property = {
-      title: rawTitle,
-      description: rawDescription,
-      originalLanguage: locale,
-
-      listingType: selectedListingType,
-      propertyType: formData.get("propertyType") as Property["propertyType"],
-
-      status:
-        submitMode === "admin"
-          ? (formData.get("status") as Property["status"])
-          : "pending",
-
-      price,
-      currency: "EUR",
-
-      location: removeUndefinedValues({
-        country: "Germany",
-        city: String(formData.get("city") || "").trim(),
-        district: String(formData.get("district") || "").trim() || undefined,
-        street: String(formData.get("street") || "").trim() || undefined,
-        postalCode:
-          String(formData.get("postalCode") || "").trim() || undefined,
-      }),
-
-      details: removeUndefinedValues({
-        rooms: Number(formData.get("rooms") || 0),
-        bedrooms: optionalNumber(formData.get("bedrooms")),
-        bathrooms: optionalNumber(formData.get("bathrooms")),
-        area,
-        floor: optionalNumber(formData.get("floor")),
-        totalFloors: optionalNumber(formData.get("totalFloors")),
-        yearBuilt: optionalNumber(formData.get("yearBuilt")),
-      }),
-
-      features: {
-        ...defaultFeatures,
-        balcony: formData.get("balcony") === "on",
-        garden: formData.get("garden") === "on",
-        elevator: formData.get("elevator") === "on",
-        parking: formData.get("parking") === "on",
-        furnished: formData.get("furnished") === "on",
-        petsAllowed: formData.get("petsAllowed") === "on",
-        cellar: formData.get("cellar") === "on",
-        fittedKitchen: formData.get("fittedKitchen") === "on",
-      },
-
-      images,
-
-      contact: removeUndefinedValues({
-        name: String(formData.get("contactName") || "").trim(),
-        email: String(formData.get("contactEmail") || "").trim(),
-        phone: String(formData.get("contactPhone") || "").trim() || undefined,
-      }),
-
-      submittedBy:
-        submitMode === "public"
-          ? removeUndefinedValues({
-              uid: user?.uid,
-              name:
-                user?.displayName ||
-                String(formData.get("contactName") || "").trim(),
-              email:
-                user?.email ||
-                String(formData.get("contactEmail") || "").trim(),
-            })
-          : undefined,
+    const values = {
+      city,
+      minPrice,
+      maxPrice,
+      minArea,
+      rooms,
+      propertyType,
+      sort,
+      ...nextValues,
     };
 
-    if (selectedListingType === "rent") {
-      property.rentDetails = removeUndefinedValues({
-        coldRent: optionalNumber(formData.get("coldRent")),
-        warmRent: optionalNumber(formData.get("warmRent")),
-        utilities: optionalNumber(formData.get("utilities")),
-        deposit: optionalNumber(formData.get("deposit")),
-        availableFrom:
-          String(formData.get("availableFrom") || "").trim() || undefined,
-      });
-    }
-
-    if (selectedListingType === "sale") {
-      property.saleDetails = {
-        purchasePrice: price,
-        pricePerSqm: area > 0 ? price / area : 0,
-      };
-    }
-
-    try {
-      if (submitMode === "public" && !user) {
-        setErrorMessage(
-          locale === "fa"
-            ? "برای ثبت آگهی باید وارد حساب کاربری شوید."
-            : locale === "de"
-              ? "Bitte melde dich an, um eine Anzeige aufzugeben."
-              : "You must be logged in to submit a listing.",
-        );
-        setLoading(false);
-        return;
-      }
-
-      if (images.length === 0) {
-        setErrorMessage(
-          locale === "fa"
-            ? "لطفاً حداقل یک عکس برای ملک آپلود کن."
-            : locale === "de"
-              ? "Bitte lade mindestens ein Bild hoch."
-              : "Please upload at least one property image.",
-        );
-        setLoading(false);
-        return;
-      }
-      const translatedText = await translatePropertyText({
-        sourceLanguage: locale,
-        title: rawTitle,
-        description: rawDescription,
-      });
-
-      property.title = translatedText.title;
-      property.description = translatedText.description;
-      property.originalLanguage = locale;
-      const validatedProperty = propertySchema.parse(property) as Property;
-
-      if (mode === "edit" && propertyId) {
-        await updateProperty(propertyId, validatedProperty);
+    Object.entries(values).forEach(([key, value]) => {
+      if (value && value !== "newest") {
+        params.set(key, value);
       } else {
-        await createProperty(validatedProperty);
+        params.delete(key);
       }
+    });
 
-      if (submitMode === "public") {
-        router.push(`/${locale}/submit-property/success`);
-      } else {
-        router.push(`/${locale}/admin/properties`);
-      }
-    } catch (error) {
-      console.error(error);
-
-      const message = getZodErrorMessage(error);
-
-      if (message !== "Something went wrong.") {
-        setErrorMessage(message);
-      } else {
-        setErrorMessage(
-          mode === "edit"
-            ? locale === "fa"
-              ? "امکان ویرایش آگهی وجود ندارد."
-              : locale === "de"
-                ? "Die Anzeige konnte nicht aktualisiert werden."
-                : "Could not update property."
-            : locale === "fa"
-              ? "امکان ساخت آگهی وجود ندارد."
-              : locale === "de"
-                ? "Die Anzeige konnte nicht erstellt werden."
-                : "Could not create property.",
-        );
-      }
-    } finally {
-      setLoading(false);
-    }
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }
 
-  const data = initialData;
+  function resetFilters() {
+    setCity("");
+    setMinPrice("");
+    setMaxPrice("");
+    setMinArea("");
+    setRooms("");
+    setPropertyType("");
+    setSort("newest");
 
-  const featureItems: Array<[keyof Property["features"], string]> = [
-    ["balcony", t.form.balcony],
-    ["garden", t.form.garden],
-    ["elevator", t.form.elevator],
-    ["parking", t.form.parking],
-    ["furnished", t.form.furnished],
-    ["petsAllowed", t.form.petsAllowed],
-    ["cellar", t.form.cellar],
-    ["fittedKitchen", t.form.fittedKitchen],
-  ];
+    const params = new URLSearchParams();
+    params.set("type", type || "rent");
+
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }
+
+  const filteredProperties = useMemo(() => {
+    let result = [...properties];
+
+    if (city.trim()) {
+      const value = city.toLowerCase().trim();
+
+      result = result.filter((property) => {
+        const propertyCity = property.location?.city?.toLowerCase() || "";
+        const district = property.location?.district?.toLowerCase() || "";
+        const postalCode = property.location?.postalCode?.toLowerCase() || "";
+
+        return (
+          propertyCity.includes(value) ||
+          district.includes(value) ||
+          postalCode.includes(value)
+        );
+      });
+    }
+
+    if (minPrice) {
+      result = result.filter(
+        (property) => Number(property.price || 0) >= Number(minPrice),
+      );
+    }
+
+    if (maxPrice) {
+      result = result.filter(
+        (property) => Number(property.price || 0) <= Number(maxPrice),
+      );
+    }
+
+    if (minArea) {
+      result = result.filter(
+        (property) => Number(property.details?.area || 0) >= Number(minArea),
+      );
+    }
+
+    if (rooms) {
+      result = result.filter(
+        (property) => Number(property.details?.rooms || 0) >= Number(rooms),
+      );
+    }
+
+    if (propertyType) {
+      result = result.filter(
+        (property) => property.propertyType === propertyType,
+      );
+    }
+
+    if (sort === "lowest-price") {
+      result.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+    }
+
+    if (sort === "highest-price") {
+      result.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+    }
+
+    if (sort === "largest-area") {
+      result.sort(
+        (a, b) => Number(b.details?.area || 0) - Number(a.details?.area || 0),
+      );
+    }
+
+    return result;
+  }, [
+    properties,
+    city,
+    minPrice,
+    maxPrice,
+    minArea,
+    rooms,
+    propertyType,
+    sort,
+  ]);
+
+  useEffect(() => {
+    setCity(cityFromUrl);
+    setMinPrice(minPriceFromUrl);
+    setMaxPrice(maxPriceFromUrl);
+    setMinArea(minAreaFromUrl);
+    setRooms(roomsFromUrl);
+    setPropertyType(propertyTypeFromUrl);
+    setSort(sortFromUrl);
+  }, [
+    cityFromUrl,
+    minPriceFromUrl,
+    maxPriceFromUrl,
+    minAreaFromUrl,
+    roomsFromUrl,
+    propertyTypeFromUrl,
+    sortFromUrl,
+  ]);
+
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+
+      try {
+        const data = await getPublicProperties({
+          listingType: type || undefined,
+        });
+
+        setProperties(data);
+      } catch (error) {
+        console.error(error);
+
+        alert(
+          locale === "fa"
+            ? "امکان دریافت آگهی‌ها وجود ندارد."
+            : locale === "de"
+              ? "Immobilien konnten nicht geladen werden."
+              : "Could not load properties.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [type, locale]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      updateUrl();
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [city, minPrice, maxPrice, minArea, rooms, propertyType, sort]);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <section className="rounded-[2rem] bg-white p-5 shadow-sm md:p-7">
-        <h2 className="mb-5 text-xl font-black text-gray-950">
-          {t.form.basicInformation}
-        </h2>
+    <main className="min-h-screen bg-[#f7f7f4] px-4 py-6 md:px-6 md:py-10">
+      <div className="mx-auto max-w-7xl">
+        <section className="mb-6 rounded-[2rem] bg-black p-6 text-white md:p-8">
+          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-sm font-medium text-white/60">
+                {type === "sale"
+                  ? locale === "fa"
+                    ? "خانه بعدی خود را بخرید"
+                    : locale === "de"
+                      ? "Kaufe dein nächstes Zuhause"
+                      : "Buy your next home"
+                  : locale === "fa"
+                    ? "خانه بعدی خود را اجاره کنید"
+                    : locale === "de"
+                      ? "Miete dein nächstes Zuhause"
+                      : "Rent your next home"}
+              </p>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <Input
-            name="title"
-            required
-            defaultValue={data?.title || ""}
-            placeholder={t.form.titlePlaceholder}
-          />
+              <h1 className="mt-2 text-3xl font-black tracking-tight md:text-5xl">
+                {type === "sale"
+                  ? t.properties.saleTitle
+                  : t.properties.rentTitle}
+              </h1>
 
-          <Select
-            name="listingType"
-            value={listingType}
-            onChange={(event) =>
-              setListingType(event.target.value as "rent" | "sale")
-            }
-          >
-            <option value="rent">{t.form.forRent}</option>
-            <option value="sale">{t.form.forSale}</option>
-          </Select>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-white/65 md:text-base">
+                {type === "sale"
+                  ? t.properties.saleSubtitle
+                  : t.properties.rentSubtitle}
+              </p>
+            </div>
 
-          <Select
-            name="propertyType"
-            defaultValue={data?.propertyType || "apartment"}
-          >
-            <option value="apartment">{t.form.apartment}</option>
-            <option value="house">{t.form.house}</option>
-            <option value="studio">{t.form.studio}</option>
-            <option value="room">{t.form.room}</option>
-          </Select>
+            <div className="rounded-[1.5rem] bg-white/10 p-4 backdrop-blur-md">
+              <p className="text-sm text-white/60">
+                {t.properties.availableListings}
+              </p>
 
-          {submitMode === "admin" ? (
-            <Select name="status" defaultValue={data?.status || "active"}>
-              <option value="active">Active</option>
-              <option value="pending">Pending</option>
-              <option value="draft">Draft</option>
-              <option value="inactive">Inactive</option>
-              <option value="rejected">Rejected</option>
-              <option value="rented">Rented</option>
-              <option value="sold">Sold</option>
-            </Select>
-          ) : (
-            <input name="status" type="hidden" value="pending" />
-          )}
-
-          <Input
-            name="price"
-            required
-            type="number"
-            defaultValue={data?.price || ""}
-            placeholder={
-              listingType === "rent"
-                ? t.form.monthlyPricePlaceholder
-                : t.form.salePricePlaceholder
-            }
-          />
-
-          <Input
-            name="area"
-            required
-            type="number"
-            defaultValue={data?.details?.area || ""}
-            placeholder={t.form.area}
-          />
-        </div>
-
-        <textarea
-          name="description"
-          required
-          defaultValue={data?.description || ""}
-          placeholder={t.form.descriptionPlaceholder}
-          rows={7}
-          className="mt-4 w-full rounded-2xl bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder:text-gray-400"
-        />
-      </section>
-
-      <section className="rounded-[2rem] bg-white p-5 shadow-sm md:p-7">
-        <h2 className="mb-5 text-xl font-black text-gray-950">
-          {t.form.images}
-        </h2>
-        <ImageUploader
-          images={images}
-          onChange={setImages}
-          locale={locale}
-        />{" "}
-      </section>
-
-      <section className="rounded-[2rem] bg-white p-5 shadow-sm md:p-7">
-        <h2 className="mb-5 text-xl font-black text-gray-950">
-          {t.form.location}
-        </h2>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <Input
-            name="city"
-            required
-            defaultValue={data?.location?.city || ""}
-            placeholder={t.form.city}
-          />
-
-          <Input
-            name="district"
-            defaultValue={data?.location?.district || ""}
-            placeholder={t.form.district}
-          />
-
-          <Input
-            name="street"
-            defaultValue={data?.location?.street || ""}
-            placeholder={t.form.street}
-          />
-
-          <Input
-            name="postalCode"
-            defaultValue={data?.location?.postalCode || ""}
-            placeholder={t.form.postalCode}
-          />
-        </div>
-      </section>
-
-      <section className="rounded-[2rem] bg-white p-5 shadow-sm md:p-7">
-        <h2 className="mb-5 text-xl font-black text-gray-950">
-          {t.form.details}
-        </h2>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          <Input
-            name="rooms"
-            required
-            type="number"
-            step="0.5"
-            defaultValue={data?.details?.rooms || ""}
-            placeholder={t.form.rooms}
-          />
-
-          <Input
-            name="bedrooms"
-            type="number"
-            defaultValue={data?.details?.bedrooms || ""}
-            placeholder={t.form.bedrooms}
-          />
-
-          <Input
-            name="bathrooms"
-            type="number"
-            defaultValue={data?.details?.bathrooms || ""}
-            placeholder={t.form.bathrooms}
-          />
-
-          <Input
-            name="floor"
-            type="number"
-            defaultValue={data?.details?.floor || ""}
-            placeholder={t.form.floor}
-          />
-
-          <Input
-            name="totalFloors"
-            type="number"
-            defaultValue={data?.details?.totalFloors || ""}
-            placeholder={t.form.totalFloors}
-          />
-
-          <Input
-            name="yearBuilt"
-            type="number"
-            defaultValue={data?.details?.yearBuilt || ""}
-            placeholder={t.form.yearBuilt}
-          />
-        </div>
-      </section>
-
-      {listingType === "rent" && (
-        <section className="rounded-[2rem] bg-white p-5 shadow-sm md:p-7">
-          <h2 className="mb-5 text-xl font-black text-gray-950">
-            {t.form.rentDetails}
-          </h2>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <Input
-              name="coldRent"
-              type="number"
-              defaultValue={data?.rentDetails?.coldRent || ""}
-              placeholder={t.form.coldRent}
-            />
-
-            <Input
-              name="warmRent"
-              type="number"
-              defaultValue={data?.rentDetails?.warmRent || ""}
-              placeholder={t.form.warmRent}
-            />
-
-            <Input
-              name="utilities"
-              type="number"
-              defaultValue={data?.rentDetails?.utilities || ""}
-              placeholder={t.form.utilities}
-            />
-
-            <Input
-              name="deposit"
-              type="number"
-              defaultValue={data?.rentDetails?.deposit || ""}
-              placeholder={t.form.deposit}
-            />
-
-            <Input
-              name="availableFrom"
-              type="date"
-              defaultValue={data?.rentDetails?.availableFrom || ""}
-            />
+              <p className="mt-1 text-3xl font-black">
+                {loading ? "..." : filteredProperties.length}
+              </p>
+            </div>
           </div>
         </section>
-      )}
 
-      <section className="rounded-[2rem] bg-white p-5 shadow-sm md:p-7">
-        <h2 className="mb-5 text-xl font-black text-gray-950">
-          {t.form.features}
-        </h2>
+        <section className="sticky top-[65px] z-40 mb-6 rounded-[1.7rem] border border-black/5 bg-white/90 p-3 shadow-lg shadow-black/5 backdrop-blur-xl md:top-[73px]">
+          <div className="flex gap-2">
+            <div className="flex flex-1 items-center gap-2 rounded-2xl bg-gray-50 px-4 py-3">
+              <Search size={18} className="text-gray-400" />
 
-        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
-          {featureItems.map(([name, label]) => (
-            <label
-              key={name}
-              className="flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-4 text-sm font-semibold text-gray-700"
-            >
               <input
-                name={name}
-                type="checkbox"
-                defaultChecked={
-                  data?.features ? Boolean(data.features[name]) : false
-                }
+                value={city}
+                onChange={(event) => setCity(event.target.value)}
+                placeholder={t.properties.cityPlaceholder}
+                className="w-full bg-transparent text-sm text-gray-900 placeholder:text-gray-400"
               />
-              <span>{label}</span>
-            </label>
-          ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowMobileFilters((value) => !value)}
+              className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-700 md:hidden"
+            >
+              <SlidersHorizontal size={20} />
+            </button>
+          </div>
+
+          <div className="mt-3 hidden grid-cols-6 gap-3 md:grid">
+            <FilterInput
+              value={minPrice}
+              onChange={setMinPrice}
+              placeholder={t.properties.minPrice}
+              type="number"
+            />
+
+            <FilterInput
+              value={maxPrice}
+              onChange={setMaxPrice}
+              placeholder={t.properties.maxPrice}
+              type="number"
+            />
+
+            <FilterInput
+              value={minArea}
+              onChange={setMinArea}
+              placeholder={t.properties.minArea}
+              type="number"
+            />
+
+            <FilterSelect value={rooms} onChange={setRooms}>
+              <option value="">{t.properties.rooms}</option>
+              <option value="1">1+</option>
+              <option value="2">2+</option>
+              <option value="3">3+</option>
+              <option value="4">4+</option>
+              <option value="5">5+</option>
+            </FilterSelect>
+
+            <FilterSelect
+              value={propertyType}
+              onChange={(value) => setPropertyType(value as PropertyType | "")}
+            >
+              <option value="">{t.properties.type}</option>
+              <option value="apartment">{t.form.apartment}</option>
+              <option value="house">{t.form.house}</option>
+              <option value="studio">{t.form.studio}</option>
+              <option value="room">{t.form.room}</option>
+            </FilterSelect>
+
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="flex items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold text-gray-700 transition hover:bg-gray-50"
+            >
+              <RotateCcw size={16} />
+              {t.common.reset}
+            </button>
+          </div>
+
+          {showMobileFilters && (
+            <div className="mt-3 grid gap-3 md:hidden">
+              <div className="grid grid-cols-2 gap-3">
+                <FilterInput
+                  value={minPrice}
+                  onChange={setMinPrice}
+                  placeholder={t.properties.minPrice}
+                  type="number"
+                />
+
+                <FilterInput
+                  value={maxPrice}
+                  onChange={setMaxPrice}
+                  placeholder={t.properties.maxPrice}
+                  type="number"
+                />
+
+                <FilterInput
+                  value={minArea}
+                  onChange={setMinArea}
+                  placeholder={t.properties.minArea}
+                  type="number"
+                />
+
+                <FilterSelect value={rooms} onChange={setRooms}>
+                  <option value="">{t.properties.rooms}</option>
+                  <option value="1">1+</option>
+                  <option value="2">2+</option>
+                  <option value="3">3+</option>
+                  <option value="4">4+</option>
+                  <option value="5">5+</option>
+                </FilterSelect>
+              </div>
+
+              <FilterSelect
+                value={propertyType}
+                onChange={(value) =>
+                  setPropertyType(value as PropertyType | "")
+                }
+              >
+                <option value="">{t.form.propertyType}</option>
+                <option value="apartment">{t.form.apartment}</option>
+                <option value="house">{t.form.house}</option>
+                <option value="studio">{t.form.studio}</option>
+                <option value="room">{t.form.room}</option>
+              </FilterSelect>
+
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="flex items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold text-gray-700"
+              >
+                <RotateCcw size={16} />
+                {t.common.reset}
+              </button>
+            </div>
+          )}
+        </section>
+
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <p className="text-sm font-medium text-gray-600">
+            {loading
+              ? t.common.loading
+              : `${filteredProperties.length} ${t.properties.propertiesFound}`}
+          </p>
+
+          <div className="flex items-center gap-2 rounded-full bg-white px-3 py-2 shadow-sm">
+            <Building2 size={16} className="text-gray-400" />
+
+            <select
+              value={sort}
+              onChange={(event) => setSort(event.target.value as SortOption)}
+              className="bg-transparent text-sm font-semibold text-gray-700"
+            >
+              <option value="newest">{t.properties.newest}</option>
+              <option value="lowest-price">{t.properties.lowestPrice}</option>
+              <option value="highest-price">{t.properties.highestPrice}</option>
+              <option value="largest-area">{t.properties.largestArea}</option>
+            </select>
+
+            <ChevronDown size={16} className="text-gray-400" />
+          </div>
         </div>
-      </section>
 
-      <section className="rounded-[2rem] bg-white p-5 shadow-sm md:p-7">
-        <h2 className="mb-5 text-xl font-black text-gray-950">
-          {t.form.contact}
-        </h2>
+        {loading && properties.length === 0 ? (
+          <PropertiesGridSkeleton />
+        ) : filteredProperties.length === 0 ? (
+          <div className="rounded-[2rem] bg-white p-8 text-center shadow-sm">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-50">
+              <Search className="text-gray-400" size={26} />
+            </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <Input
-            name="contactName"
-            required
-            defaultValue={data?.contact?.name || user?.displayName || ""}
-            placeholder={t.form.contactName}
-          />
+            <p className="mt-4 text-lg font-bold text-gray-900">
+              {t.properties.noPropertyFound}
+            </p>
 
-          <Input
-            name="contactEmail"
-            required
-            type="email"
-            defaultValue={data?.contact?.email || user?.email || ""}
-            placeholder={t.form.contactEmail}
-          />
+            <p className="mt-2 text-sm text-gray-500">
+              {t.properties.tryAnotherFilter}
+            </p>
 
-          <Input
-            name="contactPhone"
-            defaultValue={data?.contact?.phone || ""}
-            placeholder={t.form.contactPhone}
-          />
-        </div>
-      </section>
-
-      {errorMessage && (
-        <div className="whitespace-pre-line rounded-2xl bg-red-50 px-4 py-4 text-sm font-bold leading-6 text-red-600">
-          {errorMessage}
-        </div>
-      )}
-
-      <div className="sticky bottom-24 z-30 rounded-[1.5rem] border border-black/5 bg-white/90 p-3 shadow-xl shadow-black/10 backdrop-blur-xl md:bottom-6">
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-2xl bg-black px-6 py-4 text-sm font-black text-white shadow-sm transition hover:bg-gray-800 disabled:opacity-50 md:w-auto"
-        >
-          {loading
-            ? mode === "edit"
-              ? t.form.updatingProperty
-              : submitMode === "public"
-                ? t.form.submittingListing
-                : t.form.creatingProperty
-            : mode === "edit"
-              ? t.form.updateProperty
-              : submitMode === "public"
-                ? t.form.submitForReview
-                : t.form.createProperty}
-        </button>
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="mt-6 rounded-2xl bg-black px-5 py-3 text-sm font-bold text-white"
+            >
+              {t.common.reset}
+            </button>
+          </div>
+        ) : (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredProperties.map((property) => (
+              <PropertyCard
+                key={property.id}
+                property={property}
+                locale={locale}
+              />
+            ))}
+          </div>
+        )}
       </div>
-    </form>
+    </main>
   );
 }
 
-function Input({
-  className = "",
-  ...props
-}: React.InputHTMLAttributes<HTMLInputElement>) {
+function FilterInput({
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  type?: string;
+}) {
   return (
     <input
-      {...props}
-      className={`rounded-2xl bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder:text-gray-400 ${className}`}
+      value={value}
+      type={type}
+      onChange={(event) => onChange(event.target.value)}
+      placeholder={placeholder}
+      className="w-full rounded-2xl bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400"
     />
   );
 }
 
-function Select({
-  className = "",
-  ...props
-}: React.SelectHTMLAttributes<HTMLSelectElement>) {
+function FilterSelect({
+  value,
+  onChange,
+  children,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  children: React.ReactNode;
+}) {
   return (
     <select
-      {...props}
-      className={`rounded-2xl bg-gray-50 px-4 py-4 text-sm font-medium text-gray-700 ${className}`}
-    />
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      className="w-full rounded-2xl bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700"
+    >
+      {children}
+    </select>
   );
 }
