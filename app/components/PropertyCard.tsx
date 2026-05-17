@@ -1,18 +1,29 @@
 import Link from "next/link";
-import { Bath, BedDouble, Heart, MapPin, Maximize2 } from "lucide-react";
-import type { Property } from "../types/property";
-import FavoriteButton from "./FavoriteButton";
+import { Bath, BedDouble, MapPin, Maximize2 } from "lucide-react";
+
+import FavoriteButton from "@/app/components/FavoriteButton";
+import { getDictionary, type Locale } from "@/app/lib/i18n";
 import { getLocalizedText } from "@/app/lib/localizedText";
+import type { Property } from "@/app/types/property";
+
 type Props = {
   property: Property;
+  locale?: Locale;
 };
 
-export default function PropertyCard({ property }: Props) {
+export default function PropertyCard({ property, locale = "en" }: Props) {
+  const t = getDictionary(locale);
   const mainImage = property.images?.[0]?.url;
   const title = getLocalizedText(property.title, locale);
+
+  const roomsLabel =
+    locale === "fa" ? "اتاق" : locale === "de" ? "Zimmer" : "rooms";
+
+  const bathLabel = locale === "fa" ? "حمام" : locale === "de" ? "Bad" : "bath";
+
   return (
     <Link
-      href={`/properties/${property.id}`}
+      href={`/${locale}/properties/${property.id}`}
       className="group block overflow-hidden rounded-[1.8rem] border border-black/5 bg-white shadow-sm shadow-black/5 transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/10"
     >
       <div className="relative h-64 overflow-hidden bg-gray-100">
@@ -24,15 +35,21 @@ export default function PropertyCard({ property }: Props) {
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-sm text-gray-400">
-            No image
+            {locale === "fa"
+              ? "بدون عکس"
+              : locale === "de"
+                ? "Kein Bild"
+                : "No image"}
           </div>
         )}
 
         <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-gray-900 shadow-sm backdrop-blur-md">
-          {property.listingType === "rent" ? "For rent" : "For sale"}
+          {property.listingType === "rent"
+            ? t.properties.forRent
+            : t.properties.forSale}
         </div>
 
-        <FavoriteButton propertyId={property.id} />
+        <FavoriteButton propertyId={property.id} locale={locale} />
 
         <div className="absolute bottom-4 left-4 rounded-full bg-black/80 px-4 py-2 text-sm font-bold text-white backdrop-blur-md">
           {property.price.toLocaleString("de-DE")} €
@@ -57,7 +74,7 @@ export default function PropertyCard({ property }: Props) {
         <div className="mt-5 grid grid-cols-3 gap-2">
           <div className="flex items-center justify-center gap-1 rounded-2xl bg-gray-50 px-2 py-3 text-xs font-medium text-gray-700">
             <BedDouble size={16} />
-            {property.details.rooms} rooms
+            {property.details.rooms} {roomsLabel}
           </div>
 
           <div className="flex items-center justify-center gap-1 rounded-2xl bg-gray-50 px-2 py-3 text-xs font-medium text-gray-700">
@@ -67,7 +84,7 @@ export default function PropertyCard({ property }: Props) {
 
           <div className="flex items-center justify-center gap-1 rounded-2xl bg-gray-50 px-2 py-3 text-xs font-medium text-gray-700">
             <Bath size={16} />
-            {property.details.bathrooms || 1} bath
+            {property.details.bathrooms || 1} {bathLabel}
           </div>
         </div>
       </div>
