@@ -20,6 +20,11 @@ import type { ListingType, Property } from "@/app/types/property";
 
 const propertiesRef = collection(db, "properties");
 
+type PaginatedPropertiesResult = {
+  properties: Property[];
+  lastDoc: QueryDocumentSnapshot | null;
+  hasMore: boolean;
+};
 type PropertyFilters = {
   listingType?: ListingType;
 };
