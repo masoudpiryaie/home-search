@@ -9,6 +9,7 @@ import {
   Clock3,
   Eye,
   Home,
+  Pencil,
   PlusCircle,
   XCircle,
 } from "lucide-react";
@@ -283,15 +284,41 @@ function MyListingCard({
             </div>
           )}
 
-          {property.status === "active" && property.id && (
-            <Link
-              href={`/${locale}/properties/${property.id}`}
-              className="mt-4 inline-flex items-center gap-2 rounded-[15px] bg-[var(--color-primary)] px-4 py-2.5 text-xs font-black text-white shadow-[var(--shadow-button)] transition hover:bg-[var(--color-primary-dark)]"
-            >
-              <Eye size={15} />
-              {labels.viewLive}
-            </Link>
-          )}
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              {property.status === "active" && property.id && (
+                <Link
+                  href={`/${locale}/properties/${property.id}`}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-[15px] bg-[var(--color-primary)] px-4 text-xs font-black text-white shadow-[var(--shadow-button)] transition hover:-translate-y-0.5 hover:bg-[var(--color-primary-dark)]"
+                >
+                  <Eye size={15} />
+                  {labels.viewLive}
+                </Link>
+              )}
+
+              {property.id && (property.editCount || 0) < 2 && (
+                <Link
+                  href={`/${locale}/my-listings/${property.id}/edit`}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-[15px] border border-[var(--color-border)] bg-white px-4 text-xs font-black text-[var(--color-text)] shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-primary)]"
+                >
+                  <Pencil size={15} />
+                  {locale === "fa"
+                    ? "ویرایش"
+                    : locale === "de"
+                      ? "Bearbeiten"
+                      : "Edit"}
+                </Link>
+              )}
+            </div>
+
+            <p className="text-xs font-bold text-[var(--color-muted)]">
+              {locale === "fa"
+                ? `تعداد ویرایش: ${property.editCount || 0} از ۲`
+                : locale === "de"
+                  ? `Bearbeitet: ${property.editCount || 0} von 2`
+                  : `Edited: ${property.editCount || 0} of 2`}
+            </p>
+          </div>
         </div>
       </div>
     </article>

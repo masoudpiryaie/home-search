@@ -182,6 +182,22 @@ export const dictionary = {
       sendResetLink: "Send Link",
       backToLogin: "Back to login",
     },
+    locationPicker: {
+      chooseOnMap: "Choose on map",
+      helperText: "Enter the address or choose the exact location on the map.",
+      title: "Choose location on map",
+      subtitle:
+        "Search by address, postcode, or district, or click directly on the map.",
+      searchPlaceholder: "Example: Torstraße 101 Berlin or 10119",
+      search: "Search",
+      confirm: "Confirm location",
+      cancel: "Close",
+      notFound: "Location not found. Please enter a more accurate address.",
+      selected: "Location selected",
+      currentAddress: "Current address",
+      mapSelected: "Map location selected",
+      loadingMap: "Loading map...",
+    },
   },
 
   fa: {
@@ -353,6 +369,21 @@ export const dictionary = {
       sendResetLink: "ارسال لینک",
       backToLogin: "برگشت به ورود",
     },
+    locationPicker: {
+      chooseOnMap: "انتخاب روی نقشه",
+      helperText: "آدرس را وارد کن یا موقعیت دقیق را روی نقشه انتخاب کن.",
+      title: "انتخاب موقعیت روی نقشه",
+      subtitle: "آدرس، کد پستی یا محله را جستجو کن یا مستقیم روی نقشه کلیک کن.",
+      searchPlaceholder: "مثلاً: Torstraße 101 Berlin یا 10119",
+      search: "جستجو",
+      confirm: "تأیید موقعیت",
+      cancel: "بستن",
+      notFound: "موقعیت پیدا نشد. لطفاً آدرس را دقیق‌تر وارد کن.",
+      selected: "موقعیت انتخاب شد",
+      currentAddress: "آدرس فعلی",
+      mapSelected: "موقعیت روی نقشه انتخاب شده",
+      loadingMap: "در حال بارگذاری نقشه...",
+    },
   },
 
   de: {
@@ -523,6 +554,23 @@ export const dictionary = {
       resetSubtitle: "E-Mail für Reset-Link eingeben.",
       sendResetLink: "Link senden",
       backToLogin: "Zum Login",
+    },
+    locationPicker: {
+      chooseOnMap: "Auf Karte wählen",
+      helperText:
+        "Gib die Adresse ein oder wähle den genauen Standort auf der Karte.",
+      title: "Standort auf der Karte auswählen",
+      subtitle:
+        "Suche nach Adresse, PLZ oder Bezirk oder klicke direkt auf die Karte.",
+      searchPlaceholder: "z.B. Torstraße 101 Berlin oder 10119",
+      search: "Suchen",
+      confirm: "Standort bestätigen",
+      cancel: "Schließen",
+      notFound: "Standort nicht gefunden. Bitte gib eine genauere Adresse ein.",
+      selected: "Standort ausgewählt",
+      currentAddress: "Aktuelle Adresse",
+      mapSelected: "Standort wurde ausgewählt",
+      loadingMap: "Karte wird geladen...",
     },
   },
 } as const;

@@ -1,3 +1,4 @@
+import type { Timestamp } from "firebase/firestore";
 export type Locale = "en" | "fa" | "de";
 
 export type LocalizedText = {
@@ -21,6 +22,14 @@ export type PropertyImage = {
   url: string;
   publicId: string;
 };
+
+export type FirestoreDate =
+  | Timestamp
+  | Date
+  | string
+  | number
+  | null
+  | undefined;
 
 export type Property = {
   id?: string;
@@ -88,8 +97,11 @@ export type Property = {
   };
 
   createdBy?: string;
-  createdAt?: unknown;
-  updatedAt?: unknown;
+  createdAt?: FirestoreDate;
+  updatedAt?: FirestoreDate;
+
+  editCount?: number;
+  lastEditedByUserAt?: unknown;
 
   submittedBy?: {
     uid?: string;

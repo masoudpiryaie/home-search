@@ -25,14 +25,23 @@ export const propertySchema = z.object({
     "rented",
     "sold",
   ]),
+  createdBy: z.string().optional(),
+  createdAt: z.unknown().optional(),
+  updatedAt: z.unknown().optional(),
+
+  editCount: z.number().optional(),
+  lastEditedByUserAt: z.unknown().optional(),
+
   price: z.number().positive("Price must be more than 0."),
   currency: z.literal("EUR"),
   location: z.object({
     country: z.string(),
-    city: z.string().min(2, "City is required."),
+    city: z.string().min(1),
     district: z.string().optional(),
     street: z.string().optional(),
     postalCode: z.string().optional(),
+    lat: z.number().optional(),
+    lng: z.number().optional(),
   }),
 
   details: z.object({

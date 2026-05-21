@@ -10,7 +10,7 @@ import { getDictionary, type Locale } from "@/app/lib/i18n";
 import type { Property, PropertyType } from "@/app/types/property";
 import FavoriteButton from "../components/FavoriteButton";
 import PropertyCard from "../components/PropertyCard";
-
+import { getPropertyImageSources } from "@/app/lib/cloudinaryImage";
 type HomeClientProps = {
   locale: Locale;
 };
@@ -254,8 +254,9 @@ function HomeOfferCard({
 }) {
   const t = getDictionary(locale);
   const title = getLocalizedText(property.title, locale);
-  const image = property.images?.[0]?.url || fallbackImage;
-
+  const mainImage = property.images?.[0];
+  const sources = getPropertyImageSources(mainImage?.publicId);
+  const image = sources.card || mainImage?.url || fallbackImage;
   const propertyTypeLabel =
     property.propertyType === "house"
       ? t.home.house

@@ -53,7 +53,7 @@ export default function AdminDashboardPage() {
     };
   }, [properties, inquiries]);
 
-  const latestProperties = properties.slice(0, 4);
+  const latestProperties = properties.slice(0, 6);
   const latestInquiries = inquiries.slice(0, 4);
 
   useEffect(() => {

@@ -29,6 +29,11 @@ import { getPropertyById } from "@/app/lib/propertyService";
 import { getDictionary, type Locale } from "@/app/lib/i18n";
 import { getLocalizedText } from "@/app/lib/localizedText";
 import type { Property } from "@/app/types/property";
+import { formatListingDate, formatPostedAgo } from "@/app/lib/date";
+import { getPropertyImageSources } from "@/app/lib/cloudinaryImage";
+
+import dynamic from "next/dynamic";
+import PropertyMap from "@/app/components/PropertyMap";
 
 type PropertyDetailsClientProps = {
   locale: Locale;
@@ -49,7 +54,14 @@ export default function PropertyDetailsClient({
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  // const postedDate = formatListingDate(property.createdAt, locale);
+  const postedAgo = formatPostedAgo(property?.createdAt, locale);
 
+  const activePropertyImage = property?.images?.[activeImageIndex];
+  const activeSources = getPropertyImageSources(activePropertyImage?.publicId);
+
+  const currentImage =
+    activeSources.detail || activePropertyImage?.url || fallbackImage;
   useEffect(() => {
     async function loadProperty() {
       setLoading(true);
@@ -123,7 +135,7 @@ export default function PropertyDetailsClient({
     ? property.images.map((image) => image.url)
     : [fallbackImage];
 
-  const currentImage = images[activeImageIndex] || fallbackImage;
+  // const currentImage = images[activeImageIndex] || fallbackImage;
 
   const title = getLocalizedText(property.title, locale);
   const description = getLocalizedText(property.description, locale);
@@ -220,6 +232,12 @@ export default function PropertyDetailsClient({
             <div className="relative overflow-hidden rounded-[24px] bg-gray-100 md:rounded-[28px]">
               <img
                 src={currentImage}
+                srcSet={
+                  activeSources.detail && activeSources.detail2x
+                    ? `${activeSources.detail} 1200w, ${activeSources.detail2x} 1600w`
+                    : undefined
+                }
+                sizes="(max-width: 768px) 100vw, 70vw"
                 alt={title}
                 className="h-[300px] w-full object-cover sm:h-[380px] md:h-[500px]"
               />
@@ -281,6 +299,11 @@ export default function PropertyDetailsClient({
                         ? "Geprüft"
                         : "Verified"}
                   </span>
+                  {postedAgo && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-primary-soft)] px-3 py-1 text-sm font-black text-[var(--color-primary)]">
+                      {postedAgo}
+                    </span>
+                  )}
                 </div>
 
                 <p className="mt-4 text-[30px] font-black text-[var(--color-primary)] md:text-[34px]">
@@ -432,19 +455,14 @@ export default function PropertyDetailsClient({
 
             <section className="mt-7 border-t border-[var(--color-border)] pt-6">
               <h2 className="mb-4 text-[22px] font-black tracking-[-0.03em] text-[var(--color-text)]">
-                {locale === "fa"
-                  ? "موقعیت"
-                  : locale === "de"
-                    ? "Lage"
-                    : "Location"}
+                {t.form.location}
               </h2>
-
-              <div className="relative h-[170px] overflow-hidden rounded-[22px] bg-[var(--color-primary-soft)] md:h-[230px]">
-                <div className="absolute inset-0 opacity-70 [background-image:linear-gradient(90deg,rgba(255,255,255,.65)_1px,transparent_1px),linear-gradient(rgba(255,255,255,.65)_1px,transparent_1px)] [background-size:28px_28px]" />
-
-                <div className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--color-primary)] text-white shadow-[var(--shadow-button)]">
-                  <MapPin size={28} fill="currentColor" />
-                </div>
+              <div className="h-[170px] overflow-hidden rounded-[22px] md:h-[230px]">
+                <PropertyMap
+                  lat={property.location?.lat}
+                  lng={property.location?.lng}
+                  locale={locale}
+                />
               </div>
             </section>
 
@@ -534,20 +552,15 @@ export default function PropertyDetailsClient({
 
               <div className="rounded-[24px] border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-card)]">
                 <h3 className="text-xl font-black text-[var(--color-text)]">
-                  {locale === "fa"
-                    ? "موقعیت"
-                    : locale === "de"
-                      ? "Lage"
-                      : "Location"}
+                  {t.form.location}
                 </h3>
 
-                <div className="mt-4 h-[260px] overflow-hidden rounded-[18px] bg-[var(--color-primary-soft)]">
-                  <div className="relative h-full">
-                    <div className="absolute inset-0 opacity-70 [background-image:linear-gradient(90deg,rgba(255,255,255,.65)_1px,transparent_1px),linear-gradient(rgba(255,255,255,.65)_1px,transparent_1px)] [background-size:28px_28px]" />
-                    <div className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--color-primary)] text-white shadow-[var(--shadow-button)]">
-                      <MapPin size={28} fill="currentColor" />
-                    </div>
-                  </div>
+                <div className="mt-4 h-[260px] overflow-hidden rounded-[18px]">
+                  <PropertyMap
+                    lat={property.location?.lat}
+                    lng={property.location?.lng}
+                    locale={locale}
+                  />
                 </div>
               </div>
             </div>

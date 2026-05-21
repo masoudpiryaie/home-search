@@ -5,6 +5,8 @@ import FavoriteButton from "@/app/components/FavoriteButton";
 import { getDictionary, type Locale } from "@/app/lib/i18n";
 import { getLocalizedText } from "@/app/lib/localizedText";
 import type { Property } from "@/app/types/property";
+import { formatPostedAgo } from "@/app/lib/date";
+import { getPropertyImageSources } from "@/app/lib/cloudinaryImage";
 
 type Props = {
   property: Property;
@@ -13,9 +15,11 @@ type Props = {
 
 export default function PropertyCard({ property, locale = "en" }: Props) {
   const t = getDictionary(locale);
-  const mainImage = property.images?.[0]?.url;
+  const mainImage = property.images?.[0];
+  const imageSources = getPropertyImageSources(mainImage?.publicId);
+  const imageUrl = imageSources.card || mainImage?.url;
   const title = getLocalizedText(property.title, locale);
-
+  const postedAgo = formatPostedAgo(property.createdAt, locale);
   const roomsLabel =
     locale === "fa" ? "اتاق" : locale === "de" ? "Zimmer" : "rooms";
 
@@ -27,14 +31,21 @@ export default function PropertyCard({ property, locale = "en" }: Props) {
       className="group block overflow-hidden rounded-[1.8rem] border border-black/5 bg-white shadow-sm shadow-black/5 transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/10"
     >
       <div className="relative h-64 overflow-hidden bg-gray-100">
-        {mainImage ? (
+        {imageUrl ? (
           <img
-            src={mainImage}
+            src={imageUrl}
+            srcSet={
+              imageSources.card && imageSources.card2x
+                ? `${imageSources.card} 640w, ${imageSources.card2x} 960w`
+                : undefined
+            }
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             alt={title}
+            loading="lazy"
             className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-sm text-gray-400">
+          <div className="flex h-full w-full items-center justify-center text-sm text-[var(--color-muted)]">
             {locale === "fa"
               ? "بدون عکس"
               : locale === "de"
@@ -86,6 +97,11 @@ export default function PropertyCard({ property, locale = "en" }: Props) {
             <Bath size={16} />
             {property.details.bathrooms || 1} {bathLabel}
           </div>
+          {postedAgo && (
+            <p className="mt-2 text-xs font-bold text-[var(--color-primary)]">
+              {postedAgo}
+            </p>
+          )}
         </div>
       </div>
     </Link>
