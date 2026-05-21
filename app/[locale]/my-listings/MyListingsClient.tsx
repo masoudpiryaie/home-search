@@ -212,9 +212,9 @@ function MyListingCard({
   const title = getLocalizedText(property.title, locale);
 
   return (
-    <article className="rounded-[26px] border border-[var(--color-border)] bg-white p-3 shadow-[var(--shadow-card)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_48px_rgba(16,24,40,0.12)] md:p-4">
-      <div className="flex flex-col gap-4 md:flex-row">
-        <div className="h-44 w-full shrink-0 overflow-hidden rounded-[22px] bg-gray-100 md:h-32 md:w-44">
+    <article className="overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-white shadow-[var(--shadow-card)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_48px_rgba(16,24,40,0.12)] md:rounded-[28px]">
+      <div className="flex flex-col md:flex-row">
+        <div className="relative h-[210px] w-full shrink-0 overflow-hidden bg-gray-100 md:h-auto md:w-52">
           {mainImage ? (
             <img
               src={mainImage}
@@ -222,20 +222,24 @@ function MyListingCard({
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-xs font-bold text-[var(--color-muted)]">
+            <div className="flex h-full items-center justify-center px-4 text-center text-xs font-bold text-[var(--color-muted)]">
               {labels.noImage}
             </div>
           )}
+
+          <div className="absolute top-3 z-10 ltr:right-3 rtl:left-3 md:hidden">
+            <StatusBadge status={property.status} locale={locale} />
+          </div>
         </div>
 
-        <div className="min-w-0 flex-1 px-1 pb-1 md:px-0">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div className="min-w-0">
-              <p className="line-clamp-1 text-lg font-black tracking-[-0.02em] text-[var(--color-text)]">
+        <div className="min-w-0 flex-1 p-4 md:p-5">
+          <div className="flex min-w-0 items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h2 className="line-clamp-2 text-[17px] font-black leading-6 tracking-[-0.02em] text-[var(--color-text)] md:line-clamp-1 md:text-xl md:leading-7">
                 {title}
-              </p>
+              </h2>
 
-              <p className="mt-1 text-sm font-semibold text-[var(--color-muted)]">
+              <p className="mt-1.5 line-clamp-1 text-xs font-semibold text-[var(--color-muted)] md:text-sm">
                 {property.location?.city}
                 {property.location?.district
                   ? `, ${property.location.district}`
@@ -243,10 +247,12 @@ function MyListingCard({
               </p>
             </div>
 
-            <StatusBadge status={property.status} locale={locale} />
+            <div className="hidden md:block">
+              <StatusBadge status={property.status} locale={locale} />
+            </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold text-[var(--color-text)]/75">
+          <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold text-[var(--color-text)]/75 md:mt-4 md:text-xs">
             <span className="rounded-full bg-[var(--color-surface-soft)] px-3 py-1.5 capitalize ring-1 ring-[var(--color-border)]">
               {getListingTypeLabel(property.listingType, locale)}
             </span>
@@ -269,13 +275,13 @@ function MyListingCard({
           </div>
 
           {property.status === "pending" && (
-            <p className="mt-4 rounded-[18px] bg-orange-50 px-4 py-3 text-xs font-bold leading-5 text-orange-700">
+            <p className="mt-3 rounded-[16px] bg-orange-50 px-3 py-2 text-[11px] font-bold leading-5 text-orange-700 md:mt-4 md:px-4 md:py-3 md:text-xs">
               {labels.pendingText}
             </p>
           )}
 
           {property.status === "rejected" && (
-            <div className="mt-4 rounded-[18px] bg-red-50 px-4 py-3 text-xs font-bold leading-5 text-red-700">
+            <div className="mt-3 rounded-[16px] bg-red-50 px-3 py-2 text-[11px] font-bold leading-5 text-red-700 md:mt-4 md:px-4 md:py-3 md:text-xs">
               <p>{labels.rejectedText}</p>
 
               {property.review?.note && (
@@ -284,41 +290,38 @@ function MyListingCard({
             </div>
           )}
 
-          <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap items-center gap-2">
-              {property.status === "active" && property.id && (
-                <Link
-                  href={`/${locale}/properties/${property.id}`}
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-[15px] bg-[var(--color-primary)] px-4 text-xs font-black text-white shadow-[var(--shadow-button)] transition hover:-translate-y-0.5 hover:bg-[var(--color-primary-dark)]"
-                >
-                  <Eye size={15} />
-                  {labels.viewLive}
-                </Link>
-              )}
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {property.status === "active" && property.id && (
+              <Link
+                href={`/${locale}/properties/${property.id}`}
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[13px] bg-[var(--color-primary)] px-4 text-[11px] font-black text-white shadow-[var(--shadow-button)] transition hover:bg-[var(--color-primary-dark)] md:h-10 md:gap-2 md:rounded-[15px] md:text-xs"
+              >
+                <Eye size={14} />
+                {labels.viewLive}
+              </Link>
+            )}
 
-              {property.id && (property.editCount || 0) < 2 && (
-                <Link
-                  href={`/${locale}/my-listings/${property.id}/edit`}
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-[15px] border border-[var(--color-border)] bg-white px-4 text-xs font-black text-[var(--color-text)] shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-primary)]"
-                >
-                  <Pencil size={15} />
-                  {locale === "fa"
-                    ? "ویرایش"
-                    : locale === "de"
-                      ? "Bearbeiten"
-                      : "Edit"}
-                </Link>
-              )}
-            </div>
-
-            <p className="text-xs font-bold text-[var(--color-muted)]">
-              {locale === "fa"
-                ? `تعداد ویرایش: ${property.editCount || 0} از ۲`
-                : locale === "de"
-                  ? `Bearbeitet: ${property.editCount || 0} von 2`
-                  : `Edited: ${property.editCount || 0} of 2`}
-            </p>
+            {property.id && (property.editCount || 0) < 2 && (
+              <Link
+                href={`/${locale}/my-listings/${property.id}/edit`}
+                className="inline-flex h-9 items-center justify-center rounded-[13px] border border-[var(--color-border)] bg-white px-4 text-[11px] font-black text-[var(--color-text)] shadow-sm transition hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-primary)] md:h-10 md:rounded-[15px] md:text-xs"
+              >
+                {locale === "fa"
+                  ? "ویرایش"
+                  : locale === "de"
+                    ? "Bearbeiten"
+                    : "Edit"}
+              </Link>
+            )}
           </div>
+
+          <p className="mt-3 text-[11px] font-bold text-[var(--color-muted)] md:text-xs">
+            {locale === "fa"
+              ? `تعداد ویرایش: ${property.editCount || 0} از ۲`
+              : locale === "de"
+                ? `Bearbeitet: ${property.editCount || 0} von 2`
+                : `Edited: ${property.editCount || 0} of 2`}
+          </p>
         </div>
       </div>
     </article>

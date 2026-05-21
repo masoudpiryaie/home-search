@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import type { QueryDocumentSnapshot } from "firebase/firestore";
 import {
   Building2,
   ChevronDown,
+  LayoutGrid,
+  List,
   RotateCcw,
   Search,
   SlidersHorizontal,
@@ -12,7 +16,8 @@ import {
 
 import PropertyCard from "@/app/components/PropertyCard";
 import { PropertiesGridSkeleton } from "@/app/components/Skeletons";
-import { getPublicProperties } from "@/app/lib/propertyService";
+import { getLocalizedText } from "@/app/lib/localizedText";
+import { getPublicPropertiesPaginated } from "@/app/lib/propertyService";
 import { getDictionary, type Locale } from "@/app/lib/i18n";
 import type { ListingType, Property, PropertyType } from "@/app/types/property";
 
@@ -21,6 +26,8 @@ type SortOption = "newest" | "lowest-price" | "highest-price" | "largest-area";
 type PropertiesClientProps = {
   locale: Locale;
 };
+
+const PAGE_SIZE = 9;
 
 export default function PropertiesClient({ locale }: PropertiesClientProps) {
   const router = useRouter();
@@ -44,8 +51,13 @@ export default function PropertiesClient({ locale }: PropertiesClientProps) {
 
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
+  const [hasMore, setHasMore] = useState(true);
 
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [mobileViewMode, setMobileViewMode] = useState<"card" | "list">("card");
 
   const [city, setCity] = useState(cityFromUrl);
   const [minPrice, setMinPrice] = useState(minPriceFromUrl);
@@ -109,6 +121,96 @@ export default function PropertiesClient({ locale }: PropertiesClientProps) {
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }
 
+  useEffect(() => {
+    setCity(cityFromUrl);
+    setMinPrice(minPriceFromUrl);
+    setMaxPrice(maxPriceFromUrl);
+    setMinArea(minAreaFromUrl);
+    setRooms(roomsFromUrl);
+    setPropertyType(propertyTypeFromUrl);
+    setSort(sortFromUrl);
+  }, [
+    cityFromUrl,
+    minPriceFromUrl,
+    maxPriceFromUrl,
+    minAreaFromUrl,
+    roomsFromUrl,
+    propertyTypeFromUrl,
+    sortFromUrl,
+  ]);
+
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      setProperties([]);
+      setLastDoc(null);
+      setHasMore(true);
+
+      try {
+        const result = await getPublicPropertiesPaginated({
+          listingType: type || undefined,
+          pageSize: PAGE_SIZE,
+        });
+
+        setProperties(result.properties);
+        setLastDoc(result.lastDoc);
+        setHasMore(result.hasMore);
+      } catch (error) {
+        console.error(error);
+
+        alert(
+          locale === "fa"
+            ? "امکان دریافت آگهی‌ها وجود ندارد."
+            : locale === "de"
+              ? "Immobilien konnten nicht geladen werden."
+              : "Could not load properties.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [type, locale]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      updateUrl();
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [city, minPrice, maxPrice, minArea, rooms, propertyType, sort]);
+
+  async function handleLoadMore() {
+    if (!hasMore || loadingMore) return;
+
+    setLoadingMore(true);
+
+    try {
+      const result = await getPublicPropertiesPaginated({
+        listingType: type || undefined,
+        pageSize: PAGE_SIZE,
+        lastDoc,
+      });
+
+      setProperties((current) => [...current, ...result.properties]);
+      setLastDoc(result.lastDoc);
+      setHasMore(result.hasMore);
+    } catch (error) {
+      console.error(error);
+
+      alert(
+        locale === "fa"
+          ? "امکان دریافت آگهی‌های بیشتر وجود ندارد."
+          : locale === "de"
+            ? "Weitere Immobilien konnten nicht geladen werden."
+            : "Could not load more properties.",
+      );
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
   const filteredProperties = useMemo(() => {
     let result = [...properties];
 
@@ -119,11 +221,13 @@ export default function PropertiesClient({ locale }: PropertiesClientProps) {
         const propertyCity = property.location?.city?.toLowerCase() || "";
         const district = property.location?.district?.toLowerCase() || "";
         const postalCode = property.location?.postalCode?.toLowerCase() || "";
+        const street = property.location?.street?.toLowerCase() || "";
 
         return (
           propertyCity.includes(value) ||
           district.includes(value) ||
-          postalCode.includes(value)
+          postalCode.includes(value) ||
+          street.includes(value)
         );
       });
     }
@@ -184,60 +288,6 @@ export default function PropertiesClient({ locale }: PropertiesClientProps) {
     sort,
   ]);
 
-  useEffect(() => {
-    setCity(cityFromUrl);
-    setMinPrice(minPriceFromUrl);
-    setMaxPrice(maxPriceFromUrl);
-    setMinArea(minAreaFromUrl);
-    setRooms(roomsFromUrl);
-    setPropertyType(propertyTypeFromUrl);
-    setSort(sortFromUrl);
-  }, [
-    cityFromUrl,
-    minPriceFromUrl,
-    maxPriceFromUrl,
-    minAreaFromUrl,
-    roomsFromUrl,
-    propertyTypeFromUrl,
-    sortFromUrl,
-  ]);
-
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-
-      try {
-        const data = await getPublicProperties({
-          listingType: type || undefined,
-        });
-
-        setProperties(data);
-      } catch (error) {
-        console.error(error);
-
-        alert(
-          locale === "fa"
-            ? "امکان دریافت آگهی‌ها وجود ندارد."
-            : locale === "de"
-              ? "Immobilien konnten nicht geladen werden."
-              : "Could not load properties.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchData();
-  }, [type, locale]);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      updateUrl();
-    }, 500);
-
-    return () => clearTimeout(timeout);
-  }, [city, minPrice, maxPrice, minArea, rooms, propertyType, sort]);
-
   return (
     <main
       dir={isRtl ? "rtl" : "ltr"}
@@ -265,7 +315,7 @@ export default function PropertiesClient({ locale }: PropertiesClientProps) {
                         : "Rent your next home"}
                 </p>
 
-                <h1 className="mt-4 text-[28px] font-black leading-tight tracking-[-0.04em] md:text-[42px]">
+                <h1 className="mt-4 text-[34px] font-black leading-tight tracking-[-0.04em] md:text-[52px]">
                   {type === "sale"
                     ? t.properties.saleTitle
                     : t.properties.rentTitle}
@@ -427,14 +477,44 @@ export default function PropertiesClient({ locale }: PropertiesClientProps) {
               )}
             </section>
 
-            <div className="mb-5 mt-6 flex items-center justify-between gap-3">
-              <p className="text-sm font-bold text-[var(--color-muted)]">
-                {loading
-                  ? t.common.loading
-                  : `${filteredProperties.length} ${t.properties.propertiesFound}`}
-              </p>
+            <div className="mb-5 mt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-bold text-[var(--color-muted)]">
+                  {loading
+                    ? t.common.loading
+                    : `${filteredProperties.length} ${t.properties.propertiesFound}`}
+                </p>
 
-              <div className="flex h-11 items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-3 shadow-sm">
+                <div className="flex rounded-full border border-[var(--color-border)] bg-white p-1 shadow-sm md:hidden">
+                  <button
+                    type="button"
+                    onClick={() => setMobileViewMode("card")}
+                    className={`flex h-9 w-10 items-center justify-center rounded-full transition ${
+                      mobileViewMode === "card"
+                        ? "bg-[var(--color-primary)] text-white"
+                        : "text-[var(--color-muted)]"
+                    }`}
+                    aria-label="Card view"
+                  >
+                    <LayoutGrid size={18} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setMobileViewMode("list")}
+                    className={`flex h-9 w-10 items-center justify-center rounded-full transition ${
+                      mobileViewMode === "list"
+                        ? "bg-[var(--color-primary)] text-white"
+                        : "text-[var(--color-muted)]"
+                    }`}
+                    aria-label="List view"
+                  >
+                    <List size={19} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex h-11 items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-3 shadow-sm md:w-fit">
                 <Building2 size={16} className="text-[var(--color-muted)]" />
 
                 <select
@@ -455,6 +535,8 @@ export default function PropertiesClient({ locale }: PropertiesClientProps) {
                     {t.properties.largestArea}
                   </option>
                 </select>
+
+                <ChevronDown size={16} className="text-[var(--color-muted)]" />
               </div>
             </div>
 
@@ -483,15 +565,64 @@ export default function PropertiesClient({ locale }: PropertiesClientProps) {
                 </button>
               </div>
             ) : (
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredProperties.map((property) => (
-                  <PropertyCard
-                    key={property.id}
-                    property={property}
-                    locale={locale}
-                  />
-                ))}
-              </div>
+              <>
+                {mobileViewMode === "list" ? (
+                  <>
+                    <div className="grid gap-3 md:hidden">
+                      {filteredProperties.map((property) => (
+                        <MobilePropertyListItem
+                          key={property.id}
+                          property={property}
+                          locale={locale}
+                        />
+                      ))}
+                    </div>
+
+                    <div className="hidden gap-5 md:grid md:grid-cols-2 lg:grid-cols-3">
+                      {filteredProperties.map((property) => (
+                        <PropertyCard
+                          key={property.id}
+                          property={property}
+                          locale={locale}
+                        />
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                    {filteredProperties.map((property) => (
+                      <PropertyCard
+                        key={property.id}
+                        property={property}
+                        locale={locale}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {hasMore && (
+                  <div className="mt-8 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={handleLoadMore}
+                      disabled={loadingMore}
+                      className="inline-flex h-12 items-center justify-center rounded-[18px] bg-[var(--color-primary)] px-7 text-sm font-black text-white shadow-[var(--shadow-button)] transition hover:bg-[var(--color-primary-dark)] disabled:opacity-60"
+                    >
+                      {loadingMore
+                        ? locale === "fa"
+                          ? "در حال دریافت..."
+                          : locale === "de"
+                            ? "Wird geladen..."
+                            : "Loading..."
+                        : locale === "fa"
+                          ? "نمایش آگهی‌های بیشتر"
+                          : locale === "de"
+                            ? "Mehr anzeigen"
+                            : "Load more"}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </section>
@@ -539,5 +670,98 @@ function FilterSelect({
     >
       {children}
     </select>
+  );
+}
+
+function MobilePropertyListItem({
+  property,
+  locale,
+}: {
+  property: Property;
+  locale: Locale;
+}) {
+  const title = getLocalizedText(property.title, locale);
+  const image = property.images?.[0]?.url;
+  const isRtl = locale === "fa";
+
+  return (
+    <Link
+      href={`/${locale}/properties/${property.id}`}
+      dir={isRtl ? "rtl" : "ltr"}
+      className="grid grid-cols-[112px_1fr] gap-3 rounded-[22px] border border-[var(--color-border)] bg-white p-2 shadow-[var(--shadow-card)] transition active:scale-[0.99] rtl:grid-cols-[1fr_112px]"
+    >
+      <div className="h-[104px] overflow-hidden rounded-[18px] bg-gray-100">
+        {image ? (
+          <img
+            src={image}
+            alt={title}
+            loading="lazy"
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-xs font-bold text-[var(--color-muted)]">
+            {locale === "fa"
+              ? "بدون عکس"
+              : locale === "de"
+                ? "Kein Bild"
+                : "No image"}
+          </div>
+        )}
+      </div>
+
+      <div className="min-w-0 py-1">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="line-clamp-2 text-sm font-black leading-5 text-[var(--color-text)]">
+            {title || "Untitled property"}
+          </h3>
+
+          <span className="shrink-0 rounded-full bg-[var(--color-primary-soft)] px-2 py-1 text-[10px] font-black text-[var(--color-primary)]">
+            {property.listingType === "rent"
+              ? locale === "fa"
+                ? "اجاره"
+                : locale === "de"
+                  ? "Miete"
+                  : "Rent"
+              : locale === "fa"
+                ? "خرید"
+                : locale === "de"
+                  ? "Kauf"
+                  : "Buy"}
+          </span>
+        </div>
+
+        <p className="mt-2 text-base font-black text-[var(--color-primary)]">
+          €{property.price?.toLocaleString("de-DE")}
+          {property.listingType === "rent" && (
+            <span className="text-xs font-bold text-[var(--color-muted)]">
+              {" "}
+              / {locale === "fa" ? "ماه" : locale === "de" ? "Monat" : "month"}
+            </span>
+          )}
+        </p>
+
+        <p className="mt-1 line-clamp-1 text-xs font-semibold text-[var(--color-muted)]">
+          {property.location?.city}
+          {property.location?.district
+            ? `${isRtl ? "، " : ", "}${property.location.district}`
+            : ""}
+        </p>
+
+        <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-black text-[var(--color-muted)]">
+          <span className="rounded-full bg-[#fffdf9] px-2 py-1 ring-1 ring-[var(--color-border)]">
+            {property.details?.rooms || "-"}{" "}
+            {locale === "fa" ? "اتاق" : locale === "de" ? "Zimmer" : "rooms"}
+          </span>
+
+          <span className="rounded-full bg-[#fffdf9] px-2 py-1 ring-1 ring-[var(--color-border)]">
+            {property.details?.area || "-"} m²
+          </span>
+
+          <span className="rounded-full bg-[#fffdf9] px-2 py-1 ring-1 ring-[var(--color-border)]">
+            {property.propertyType}
+          </span>
+        </div>
+      </div>
+    </Link>
   );
 }

@@ -1,14 +1,18 @@
 import {
+  QueryDocumentSnapshot,
   addDoc,
   collection,
   deleteDoc,
   doc,
   getDoc,
   getDocs,
+  limit,
   query,
   serverTimestamp,
+  startAfter,
   updateDoc,
   where,
+  orderBy,
 } from "firebase/firestore";
 
 import { db } from "@/app/lib/firebase";
@@ -215,4 +219,44 @@ export async function updateUserProperty(
   });
 
   await updateDoc(doc(db, "properties", id), cleanProperty);
+}
+
+export async function getPublicPropertiesPaginated({
+  listingType,
+  pageSize = 9,
+  lastDoc,
+}: {
+  listingType?: ListingType;
+  pageSize?: number;
+  lastDoc?: QueryDocumentSnapshot | null;
+}): Promise<PaginatedPropertiesResult> {
+  const constraints = [
+    where("status", "==", "active"),
+    orderBy("createdAt", "desc"),
+  ];
+
+  if (listingType) {
+    constraints.unshift(where("listingType", "==", listingType));
+  }
+
+  const propertiesQuery = lastDoc
+    ? query(
+        propertiesRef,
+        ...constraints,
+        startAfter(lastDoc),
+        limit(pageSize + 1),
+      )
+    : query(propertiesRef, ...constraints, limit(pageSize + 1));
+
+  const snapshot = await getDocs(propertiesQuery);
+
+  const docs = snapshot.docs;
+  const visibleDocs = docs.slice(0, pageSize);
+
+  return {
+    properties: visibleDocs.map(mapPropertyDoc),
+    lastDoc:
+      visibleDocs.length > 0 ? visibleDocs[visibleDocs.length - 1] : null,
+    hasMore: docs.length > pageSize,
+  };
 }
