@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bath, BedDouble, MapPin, Maximize2 } from "lucide-react";
+import { Bath, BedDouble, MapPin, Maximize2, Eye } from "lucide-react";
 
 import FavoriteButton from "@/app/components/FavoriteButton";
 import { getDictionary, type Locale } from "@/app/lib/i18n";
@@ -7,7 +7,6 @@ import { getLocalizedText } from "@/app/lib/localizedText";
 import type { Property } from "@/app/types/property";
 import { formatPostedAgo } from "@/app/lib/date";
 import { getPropertyImageSources } from "@/app/lib/cloudinaryImage";
-
 type Props = {
   property: Property;
   locale?: Locale;
@@ -72,14 +71,24 @@ export default function PropertyCard({ property, locale = "en" }: Props) {
           {title}
         </h2>
 
-        <div className="mt-2 flex items-center gap-1 text-sm text-gray-500">
-          <MapPin size={15} />
-          <span className="line-clamp-1">
-            {property.location.city}
-            {property.location.district
-              ? `, ${property.location.district}`
-              : ""}
-          </span>
+        <div className="mt-2 flex justify-between items-center gap-1 text-sm text-gray-500">
+          <div className="mt-2 flex justify-between items-center gap-1 text-sm text-gray-500">
+            <MapPin size={15} />
+            <span className="line-clamp-1">
+              {property.location.city}
+              {property.location.district
+                ? `, ${property.location.district}`
+                : ""}
+            </span>
+          </div>
+          <p className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[var(--color-muted)]">
+            <Eye size={14} />
+            {locale === "fa"
+              ? `${property.viewCount || 0} بازدید`
+              : locale === "de"
+                ? `${property.viewCount || 0} Aufrufe`
+                : `${property.viewCount || 0} views`}
+          </p>
         </div>
 
         <div className="mt-5 grid grid-cols-3 gap-2">

@@ -7,6 +7,7 @@ import {
   getDoc,
   getDocs,
   limit,
+  increment,
   query,
   serverTimestamp,
   startAfter,
@@ -264,4 +265,11 @@ export async function getPublicPropertiesPaginated({
       visibleDocs.length > 0 ? visibleDocs[visibleDocs.length - 1] : null,
     hasMore: docs.length > pageSize,
   };
+}
+
+export async function incrementPropertyView(id: string) {
+  await updateDoc(doc(db, "properties", id), {
+    viewCount: increment(1),
+    lastViewedAt: serverTimestamp(),
+  });
 }

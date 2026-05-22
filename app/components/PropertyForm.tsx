@@ -599,8 +599,12 @@ export default function PropertyForm({
         <h2 className="mb-5 text-xl font-black text-[var(--color-text)]">
           {t.form.images}
         </h2>
-
-        <ImageUploader images={images} onChange={setImages} locale={locale} />
+        <ImageUploader
+          images={images}
+          onChange={setImages}
+          locale={locale}
+          maxImages={5}
+        />
       </section>
 
       <section className="rounded-[2rem] border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-card)] md:p-7">

@@ -102,6 +102,8 @@ export type Property = {
 
   editCount?: number;
   lastEditedByUserAt?: unknown;
+  viewCount?: number;
+  lastViewedAt?: unknown;
 
   submittedBy?: {
     uid?: string;

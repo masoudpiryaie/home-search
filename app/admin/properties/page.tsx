@@ -540,6 +540,9 @@ function AdminPropertyCard({
                 <span className="rounded-full bg-[#fffdf9] px-3 py-1 ring-1 ring-[var(--color-border)]">
                   €{property.price?.toLocaleString("de-DE")}
                 </span>
+                <span className="rounded-full bg-[#fffdf9] px-3 py-1 ring-1 ring-[var(--color-border)]">
+                  {property.viewCount || 0} views
+                </span>
               </div>
 
               <div className="mt-4 grid gap-1 text-xs font-semibold text-[var(--color-muted)]">

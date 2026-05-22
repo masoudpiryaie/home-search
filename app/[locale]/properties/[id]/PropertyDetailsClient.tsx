@@ -20,18 +20,21 @@ import {
   Share2,
   Sofa,
   Wifi,
+  Eye,
 } from "lucide-react";
 
 import FavoriteButton from "@/app/components/FavoriteButton";
 import InquiryForm from "@/app/components/InquiryForm";
 import { PropertyDetailsSkeleton } from "@/app/components/Skeletons";
-import { getPropertyById } from "@/app/lib/propertyService";
 import { getDictionary, type Locale } from "@/app/lib/i18n";
 import { getLocalizedText } from "@/app/lib/localizedText";
 import type { Property } from "@/app/types/property";
 import { formatListingDate, formatPostedAgo } from "@/app/lib/date";
 import { getPropertyImageSources } from "@/app/lib/cloudinaryImage";
-
+import {
+  getPropertyById,
+  incrementPropertyView,
+} from "@/app/lib/propertyService";
 import dynamic from "next/dynamic";
 import PropertyMap from "@/app/components/PropertyMap";
 
@@ -62,6 +65,24 @@ export default function PropertyDetailsClient({
 
   const currentImage =
     activeSources.detail || activePropertyImage?.url || fallbackImage;
+
+  function shouldCountView(propertyId: string) {
+    if (typeof window === "undefined") return false;
+
+    const key = `property-view-${propertyId}`;
+    const lastViewedAt = localStorage.getItem(key);
+
+    const now = Date.now();
+    const twelveHours = 12 * 60 * 60 * 1000;
+
+    if (lastViewedAt && now - Number(lastViewedAt) < twelveHours) {
+      return false;
+    }
+
+    localStorage.setItem(key, String(now));
+    return true;
+  }
+
   useEffect(() => {
     async function loadProperty() {
       setLoading(true);
@@ -77,6 +98,18 @@ export default function PropertyDetailsClient({
         }
 
         setProperty(data);
+        if (data.id && shouldCountView(data.id)) {
+          await incrementPropertyView(data.id);
+
+          setProperty((current) =>
+            current
+              ? {
+                  ...current,
+                  viewCount: Number(current.viewCount || 0) + 1,
+                }
+              : current,
+          );
+        }
       } catch (error) {
         console.error(error);
         setNotFound(true);
@@ -290,7 +323,14 @@ export default function PropertyDetailsClient({
                       ? `, ${property.location.district}`
                       : ""}
                   </span>
-
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#fffdf9] px-3 py-1 text-sm font-black text-[var(--color-muted)] ring-1 ring-[var(--color-border)]">
+                    <Eye size={15} />
+                    {locale === "fa"
+                      ? `${property.viewCount || 0} بازدید`
+                      : locale === "de"
+                        ? `${property.viewCount || 0} Aufrufe`
+                        : `${property.viewCount || 0} views`}
+                  </span>
                   <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-primary-soft)] px-3 py-1 text-[var(--color-primary)]">
                     <CheckCircle2 size={15} />
                     {locale === "fa"

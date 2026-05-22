@@ -690,7 +690,7 @@ function MobilePropertyListItem({
       dir={isRtl ? "rtl" : "ltr"}
       className="grid grid-cols-[112px_1fr] gap-3 rounded-[22px] border border-[var(--color-border)] bg-white p-2 shadow-[var(--shadow-card)] transition active:scale-[0.99] rtl:grid-cols-[1fr_112px]"
     >
-      <div className="h-[104px] overflow-hidden rounded-[18px] bg-gray-100">
+      <div className="h-[104px] w-[104px] overflow-hidden rounded-[18px] bg-gray-100">
         {image ? (
           <img
             src={image}

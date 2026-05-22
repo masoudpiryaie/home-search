@@ -25,12 +25,17 @@ const markerIcon = new L.Icon({
   iconAnchor: [12, 41],
 });
 
-function MapUpdater({ lat, lng }: { lat: number; lng: number }) {
+function MapFixer({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap();
 
   useEffect(() => {
-    map.setView([lat, lng], 15);
-  }, [lat, lng, map]);
+    const timer = window.setTimeout(() => {
+      map.invalidateSize();
+      map.setView([lat, lng], 15);
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [map, lat, lng]);
 
   return null;
 }
@@ -62,14 +67,14 @@ export default function LocationPickerMap({
       center={[lat, lng]}
       zoom={15}
       scrollWheelZoom
-      className="h-full min-h-[360px] w-full rounded-[22px]"
+      className="z-0 h-full min-h-[360px] w-full rounded-[22px]"
     >
       <TileLayer
         attribution="&copy; OpenStreetMap contributors"
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
 
-      <MapUpdater lat={lat} lng={lng} />
+      <MapFixer lat={lat} lng={lng} />
       <ClickHandler onChange={onChange} />
 
       <Marker position={[lat, lng]} icon={markerIcon} />

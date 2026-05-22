@@ -31,6 +31,7 @@ export const propertySchema = z.object({
 
   editCount: z.number().optional(),
   lastEditedByUserAt: z.unknown().optional(),
+  viewCount: z.number().optional(),
 
   price: z.number().positive("Price must be more than 0."),
   currency: z.literal("EUR"),
@@ -109,6 +110,7 @@ export const propertySchema = z.object({
       note: z.string().optional(),
     })
     .optional(),
+  lastViewedAt: z.unknown().optional(),
 });
 
 export function getZodErrorMessage(error: unknown) {
