@@ -1,111 +1,73 @@
 import {
-  QueryDocumentSnapshot,
-  addDoc,
   collection,
   deleteDoc,
   doc,
   getDoc,
   getDocs,
-  limit,
   increment,
+  limit,
   query,
+  QueryDocumentSnapshot,
   serverTimestamp,
+  setDoc,
   startAfter,
   updateDoc,
   where,
-  orderBy,
 } from "firebase/firestore";
 
 import { db } from "@/app/lib/firebase";
+import { cleanObject, mapDoc, sortByNewest } from "@/app/lib/firestoreHelpers";
+import { createPropertySlug } from "@/app/lib/slug";
 import type { ListingType, Property } from "@/app/types/property";
 
 const propertiesRef = collection(db, "properties");
 
-type PaginatedPropertiesResult = {
-  properties: Property[];
-  lastDoc: QueryDocumentSnapshot | null;
-  hasMore: boolean;
-};
 type PropertyFilters = {
   listingType?: ListingType;
 };
 
-type FirestoreLikeDate =
-  | {
-      seconds?: number;
-      nanoseconds?: number;
-      toDate?: () => Date;
-    }
-  | Date
-  | string
-  | number
-  | null
-  | undefined;
+export type PaginatedPropertiesResult = {
+  properties: Property[];
+  lastDoc: QueryDocumentSnapshot | null;
+  hasMore: boolean;
+};
 
-function cleanObject<T>(value: T): T {
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => cleanObject(item))
-      .filter((item) => item !== undefined) as T;
-  }
+function ensurePropertyDefaults(property: Property) {
+  const stats = property.stats || {
+    views: property.viewCount || 0,
+    favorites: 0,
+    inquiries: 0,
+  };
+  return cleanObject({
+    ...property,
 
-  if (value && typeof value === "object" && !(value instanceof Date)) {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>)
-        .filter(([, item]) => item !== undefined)
-        .map(([key, item]) => [key, cleanObject(item)]),
-    ) as T;
-  }
+    slug: property.slug || createPropertySlug(property),
 
-  return value;
-}
+    currency: property.currency || "EUR",
 
-function toMillis(value: FirestoreLikeDate) {
-  if (!value) return 0;
+    stats: {
+      views: Number(stats.views || property.viewCount || 0),
+      favorites: Number(stats.favorites || 0),
+      inquiries: Number(stats.inquiries || 0),
+    },
 
-  if (value instanceof Date) {
-    return value.getTime();
-  }
+    viewCount: property.viewCount || property.stats?.views || 0,
 
-  if (typeof value === "string" || typeof value === "number") {
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? 0 : date.getTime();
-  }
-
-  if (typeof value.toDate === "function") {
-    return value.toDate().getTime();
-  }
-
-  if (typeof value.seconds === "number") {
-    return value.seconds * 1000;
-  }
-
-  return 0;
-}
-
-function sortByNewest(properties: Property[]) {
-  return [...properties].sort(
-    (a, b) =>
-      toMillis(b.createdAt as FirestoreLikeDate) -
-      toMillis(a.createdAt as FirestoreLikeDate),
-  );
-}
-
-function mapPropertyDoc(docItem: { id: string; data: () => unknown }) {
-  return {
-    id: docItem.id,
-    ...(docItem.data() as Record<string, unknown>),
-  } as Property;
+    isFeatured: property.isFeatured || false,
+  });
 }
 
 export async function createProperty(property: Property) {
-  const cleanProperty = cleanObject({
+  const docRef = doc(propertiesRef);
+
+  const propertyWithDefaults = ensurePropertyDefaults({
     ...property,
+    id: docRef.id,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-  });
+  } as Property);
 
-  const docRef = await addDoc(propertiesRef, cleanProperty);
+  await setDoc(docRef, propertyWithDefaults);
 
   return docRef.id;
 }
@@ -114,40 +76,123 @@ export async function getProperties(filters?: PropertyFilters) {
   return getPublicProperties(filters);
 }
 
+// export async function getPublicProperties(filters?: PropertyFilters) {
+//   const activeQuery = filters?.listingType
+//     ? query(
+//         propertiesRef,
+//         where("status", "==", "active"),
+//         where("listingType", "==", filters.listingType),
+//       )
+//     : query(propertiesRef, where("status", "==", "active"));
+
+//   const publishedQuery = filters?.listingType
+//     ? query(
+//         propertiesRef,
+//         where("status", "==", "published"),
+//         where("listingType", "==", filters.listingType),
+//       )
+//     : query(propertiesRef, where("status", "==", "published"));
+
+//   const [activeSnapshot, publishedSnapshot] = await Promise.all([
+//     getDocs(activeQuery),
+//     getDocs(publishedQuery),
+//   ]);
+
+//   const map = new Map<string, Property>();
+
+//   activeSnapshot.docs.forEach((item) => {
+//     const property = mapDoc<Property>(item);
+//     map.set(item.id, property);
+//   });
+
+//   publishedSnapshot.docs.forEach((item) => {
+//     const property = mapDoc<Property>(item);
+//     map.set(item.id, property);
+//   });
+
+//   return sortByNewest([...map.values()]);
+// }
+
 export async function getPublicProperties(filters?: PropertyFilters) {
+  const publicQuery = filters?.listingType
+    ? query(
+        propertiesRef,
+        where("status", "==", "active"),
+        where("listingType", "==", filters.listingType),
+      )
+    : query(propertiesRef, where("status", "==", "active"));
+
+  const snapshot = await getDocs(publicQuery);
+
+  return sortByNewest(snapshot.docs.map((item) => mapDoc<Property>(item)));
+}
+
+export async function getPublicPropertiesPaginated({
+  listingType,
+  pageSize = 9,
+  lastDoc,
+}: {
+  listingType?: ListingType;
+  pageSize?: number;
+  lastDoc?: QueryDocumentSnapshot | null;
+}): Promise<PaginatedPropertiesResult> {
   const constraints = [where("status", "==", "active")];
 
-  if (filters?.listingType) {
-    constraints.push(where("listingType", "==", filters.listingType));
+  if (listingType) {
+    constraints.push(where("listingType", "==", listingType));
   }
 
-  const propertiesQuery = query(propertiesRef, ...constraints);
+  const propertiesQuery = lastDoc
+    ? query(
+        propertiesRef,
+        ...constraints,
+        startAfter(lastDoc),
+        limit(pageSize + 1),
+      )
+    : query(propertiesRef, ...constraints, limit(pageSize + 1));
+
   const snapshot = await getDocs(propertiesQuery);
 
-  const properties = snapshot.docs.map(mapPropertyDoc);
+  const docs = snapshot.docs;
+  const visibleDocs = docs.slice(0, pageSize);
 
-  return sortByNewest(properties);
+  return {
+    properties: sortByNewest(visibleDocs.map((item) => mapDoc<Property>(item))),
+    lastDoc:
+      visibleDocs.length > 0 ? visibleDocs[visibleDocs.length - 1] : null,
+    hasMore: docs.length > pageSize,
+  };
 }
 
 export async function getAdminProperties() {
   const snapshot = await getDocs(propertiesRef);
 
-  const properties = snapshot.docs.map(mapPropertyDoc);
-
-  return sortByNewest(properties);
+  return sortByNewest(snapshot.docs.map((item) => mapDoc<Property>(item)));
 }
 
 export async function getMyProperties(userId: string) {
-  const propertiesQuery = query(
+  const ownerQuery = query(propertiesRef, where("ownerId", "==", userId));
+  const submittedQuery = query(
     propertiesRef,
     where("submittedBy.uid", "==", userId),
   );
 
-  const snapshot = await getDocs(propertiesQuery);
+  const [ownerSnapshot, submittedSnapshot] = await Promise.all([
+    getDocs(ownerQuery),
+    getDocs(submittedQuery),
+  ]);
 
-  const properties = snapshot.docs.map(mapPropertyDoc);
+  const map = new Map<string, Property>();
 
-  return sortByNewest(properties);
+  ownerSnapshot.docs.forEach((item) => {
+    map.set(item.id, mapDoc<Property>(item));
+  });
+
+  submittedSnapshot.docs.forEach((item) => {
+    map.set(item.id, mapDoc<Property>(item));
+  });
+
+  return sortByNewest([...map.values()]);
 }
 
 export async function getPropertyById(id: string) {
@@ -164,6 +209,39 @@ export async function getPropertyById(id: string) {
   } as Property;
 }
 
+export async function getPublicPropertyBySlug(slug: string) {
+  const propertiesQuery = query(
+    propertiesRef,
+    where("slug", "==", slug),
+    where("status", "==", "active"),
+    limit(1),
+  );
+
+  const snapshot = await getDocs(propertiesQuery);
+
+  if (snapshot.empty) {
+    return null;
+  }
+
+  return mapDoc<Property>(snapshot.docs[0]);
+}
+
+export async function getPublicPropertyByIdOrSlug(value: string) {
+  const bySlug = await getPublicPropertyBySlug(value);
+
+  if (bySlug) {
+    return bySlug;
+  }
+
+  const byId = await getPropertyById(value);
+
+  if (!byId || byId.status !== "active") {
+    return null;
+  }
+
+  return byId;
+}
+
 export async function updateProperty(id: string, property: Property) {
   const cleanProperty = cleanObject({
     ...property,
@@ -171,44 +249,6 @@ export async function updateProperty(id: string, property: Property) {
   });
 
   await updateDoc(doc(db, "properties", id), cleanProperty);
-}
-
-export async function deleteProperty(id: string) {
-  await deleteDoc(doc(db, "properties", id));
-}
-
-export async function updatePropertyStatus(
-  id: string,
-  status: Property["status"],
-  note?: string,
-  reviewedBy?: string,
-) {
-  const updateData = cleanObject({
-    status,
-    updatedAt: serverTimestamp(),
-    review:
-      status === "active" || status === "rejected"
-        ? {
-            reviewedBy,
-            reviewedAt: serverTimestamp(),
-            note: note?.trim() || undefined,
-          }
-        : undefined,
-  });
-
-  await updateDoc(doc(db, "properties", id), updateData);
-}
-
-export async function approveProperty(id: string, reviewedBy?: string) {
-  await updatePropertyStatus(id, "active", undefined, reviewedBy);
-}
-
-export async function rejectProperty(
-  id: string,
-  note?: string,
-  reviewedBy?: string,
-) {
-  await updatePropertyStatus(id, "rejected", note, reviewedBy);
 }
 
 export async function updateUserProperty(
@@ -227,49 +267,130 @@ export async function updateUserProperty(
   await updateDoc(doc(db, "properties", id), cleanProperty);
 }
 
-export async function getPublicPropertiesPaginated({
-  listingType,
-  pageSize = 9,
-  lastDoc,
-}: {
-  listingType?: ListingType;
-  pageSize?: number;
-  lastDoc?: QueryDocumentSnapshot | null;
-}): Promise<PaginatedPropertiesResult> {
-  const constraints = [
-    where("status", "==", "active"),
-    orderBy("createdAt", "desc"),
-  ];
+export async function deleteProperty(id: string) {
+  await deleteDoc(doc(db, "properties", id));
+}
 
-  if (listingType) {
-    constraints.unshift(where("listingType", "==", listingType));
+export async function softDeleteProperty(id: string) {
+  await updateDoc(doc(db, "properties", id), {
+    status: "deleted",
+    deletedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function updatePropertyStatus(
+  id: string,
+  status: Property["status"],
+  note?: string,
+  reviewedBy?: string,
+) {
+  const updateData = cleanObject({
+    status,
+    updatedAt: serverTimestamp(),
+
+    review:
+      status === "active" || status === "rejected"
+        ? {
+            reviewedBy,
+            reviewedAt: serverTimestamp(),
+            note: note?.trim() || undefined,
+          }
+        : undefined,
+
+    moderation:
+      status === "active" || status === "rejected"
+        ? {
+            reviewedBy,
+            reviewedAt: serverTimestamp(),
+            rejectionReason:
+              status === "rejected" ? note?.trim() || undefined : undefined,
+          }
+        : undefined,
+
+    publishedAt: status === "active" ? serverTimestamp() : undefined,
+  });
+
+  await updateDoc(doc(db, "properties", id), updateData);
+}
+
+export async function approveProperty(id: string, reviewedBy?: string) {
+  await updatePropertyStatus(id, "active", undefined, reviewedBy);
+}
+
+export async function rejectProperty(
+  id: string,
+  note?: string,
+  reviewedBy?: string,
+) {
+  await updatePropertyStatus(id, "rejected", note, reviewedBy);
+}
+
+export async function getSimilarProperties(property: Property) {
+  if (!property.id) {
+    return [];
   }
 
-  const propertiesQuery = lastDoc
-    ? query(
-        propertiesRef,
-        ...constraints,
-        startAfter(lastDoc),
-        limit(pageSize + 1),
-      )
-    : query(propertiesRef, ...constraints, limit(pageSize + 1));
+  const activeQuery = query(
+    propertiesRef,
+    where("status", "==", "active"),
+    where("listingType", "==", property.listingType),
+  );
 
-  const snapshot = await getDocs(propertiesQuery);
+  const snapshot = await getDocs(activeQuery);
 
-  const docs = snapshot.docs;
-  const visibleDocs = docs.slice(0, pageSize);
+  const properties = snapshot.docs
+    .map((item) => mapDoc<Property>(item))
+    .filter((item) => item.id !== property.id);
 
-  return {
-    properties: visibleDocs.map(mapPropertyDoc),
-    lastDoc:
-      visibleDocs.length > 0 ? visibleDocs[visibleDocs.length - 1] : null,
-    hasMore: docs.length > pageSize,
-  };
+  const city = property.location?.city?.toLowerCase().trim() || "";
+  const district = property.location?.district?.toLowerCase().trim() || "";
+
+  return properties
+    .map((item) => {
+      let score = 0;
+
+      if (city && item.location?.city?.toLowerCase().trim() === city) {
+        score += 4;
+      }
+
+      if (
+        district &&
+        item.location?.district?.toLowerCase().trim() === district
+      ) {
+        score += 3;
+      }
+
+      if (item.propertyType === property.propertyType) {
+        score += 2;
+      }
+
+      const price = Number(property.price || 0);
+      const priceDiff = Math.abs(Number(item.price || 0) - price);
+
+      if (price > 0 && priceDiff <= price * 0.25) {
+        score += 1;
+      }
+
+      return {
+        property: item,
+        score,
+      };
+    })
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 4)
+    .map((item) => item.property);
 }
 
 export async function incrementPropertyView(id: string) {
-  await updateDoc(doc(db, "properties", id), {
-    viewCount: increment(1),
-    lastViewedAt: serverTimestamp(),
-  });
+  try {
+    await updateDoc(doc(db, "properties", id), {
+      viewCount: increment(1),
+      "stats.views": increment(1),
+      lastViewedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.warn("View count update failed:", error);
+  }
 }

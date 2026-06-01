@@ -1,4 +1,4 @@
-import type { Timestamp } from "firebase/firestore";
+import type { FirestoreDate } from "@/app/lib/firestoreHelpers";
 export type Locale = "en" | "fa" | "de";
 
 export type LocalizedText = {
@@ -22,20 +22,28 @@ export type PropertyImage = {
   url: string;
   publicId: string;
 };
-
-export type FirestoreDate =
-  | Timestamp
-  | Date
-  | string
-  | number
-  | null
-  | undefined;
-
+export type { FirestoreDate };
 export type Property = {
   id?: string;
+  slug?: string;
   title: string | LocalizedText;
   description: string | LocalizedText;
   originalLanguage?: Locale;
+
+  ownerId?: string;
+  agencyId?: string;
+
+  stats?: {
+    views: number;
+    favorites: number;
+    inquiries: number;
+  };
+
+  isFeatured?: boolean;
+  featuredUntil?: unknown;
+  publishedAt?: unknown;
+  expiresAt?: unknown;
+  deletedAt?: unknown;
 
   listingType: ListingType;
   propertyType: PropertyType;

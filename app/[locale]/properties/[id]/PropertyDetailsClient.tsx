@@ -11,6 +11,8 @@ import {
   CalendarDays,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Home,
   Mail,
   MapPin,
@@ -21,30 +23,29 @@ import {
   Sofa,
   Wifi,
   Eye,
+  Heart,
 } from "lucide-react";
 
 import FavoriteButton from "@/app/components/FavoriteButton";
 import InquiryForm from "@/app/components/InquiryForm";
+import PropertyImage from "@/app/components/PropertyImage";
+import PropertyMap from "@/app/components/PropertyMap";
+import ReportPropertyButton from "@/app/components/ReportPropertyButton";
 import { PropertyDetailsSkeleton } from "@/app/components/Skeletons";
 import { getDictionary, type Locale } from "@/app/lib/i18n";
 import { getLocalizedText } from "@/app/lib/localizedText";
-import type { Property } from "@/app/types/property";
-import { formatListingDate, formatPostedAgo } from "@/app/lib/date";
-import { getPropertyImageSources } from "@/app/lib/cloudinaryImage";
+import { formatPostedAgo } from "@/app/lib/date";
+import { trackPropertyView } from "@/app/lib/propertyViews";
 import {
-  getPropertyById,
-  incrementPropertyView,
+  getPublicPropertyByIdOrSlug,
+  getSimilarProperties,
 } from "@/app/lib/propertyService";
-import dynamic from "next/dynamic";
-import PropertyMap from "@/app/components/PropertyMap";
+import type { Property } from "@/app/types/property";
 
 type PropertyDetailsClientProps = {
   locale: Locale;
   propertyId: string;
 };
-
-const fallbackImage =
-  "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?q=80&w=1600&auto=format&fit=crop";
 
 export default function PropertyDetailsClient({
   locale,
@@ -54,31 +55,21 @@ export default function PropertyDetailsClient({
   const isRtl = locale === "fa";
 
   const [property, setProperty] = useState<Property | null>(null);
+  const [similarProperties, setSimilarProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  // const postedDate = formatListingDate(property.createdAt, locale);
+  const [descExpanded, setDescExpanded] = useState(false);
+
   const postedAgo = formatPostedAgo(property?.createdAt, locale);
 
-  const activePropertyImage = property?.images?.[activeImageIndex];
-  const activeSources = getPropertyImageSources(activePropertyImage?.publicId);
-
-  const currentImage =
-    activeSources.detail || activePropertyImage?.url || fallbackImage;
-
-  function shouldCountView(propertyId: string) {
+  function shouldCountView(id: string) {
     if (typeof window === "undefined") return false;
-
-    const key = `property-view-${propertyId}`;
+    const key = `property-view-${id}`;
     const lastViewedAt = localStorage.getItem(key);
-
     const now = Date.now();
     const twelveHours = 12 * 60 * 60 * 1000;
-
-    if (lastViewedAt && now - Number(lastViewedAt) < twelveHours) {
-      return false;
-    }
-
+    if (lastViewedAt && now - Number(lastViewedAt) < twelveHours) return false;
     localStorage.setItem(key, String(now));
     return true;
   }
@@ -87,28 +78,39 @@ export default function PropertyDetailsClient({
     async function loadProperty() {
       setLoading(true);
       setNotFound(false);
-
       try {
-        const data = await getPropertyById(propertyId);
-
+        const data = await getPublicPropertyByIdOrSlug(propertyId);
         if (!data || data.status !== "active") {
           setNotFound(true);
           setProperty(null);
           return;
         }
-
         setProperty(data);
+        if (data.id) {
+          try {
+            const similar = await getSimilarProperties(data);
+            setSimilarProperties(similar);
+          } catch {
+            setSimilarProperties([]);
+          }
+        }
         if (data.id && shouldCountView(data.id)) {
-          await incrementPropertyView(data.id);
-
-          setProperty((current) =>
-            current
-              ? {
-                  ...current,
-                  viewCount: Number(current.viewCount || 0) + 1,
-                }
-              : current,
-          );
+          const tracked = await trackPropertyView(data.id);
+          if (tracked) {
+            setProperty((current) =>
+              current
+                ? {
+                    ...current,
+                    viewCount: Number(current.viewCount || 0) + 1,
+                    stats: {
+                      views: Number(current.stats?.views || 0) + 1,
+                      favorites: Number(current.stats?.favorites || 0),
+                      inquiries: Number(current.stats?.inquiries || 0),
+                    },
+                  }
+                : current,
+            );
+          }
         }
       } catch (error) {
         console.error(error);
@@ -117,41 +119,38 @@ export default function PropertyDetailsClient({
         setLoading(false);
       }
     }
-
     loadProperty();
   }, [propertyId]);
 
-  if (loading) {
-    return <PropertyDetailsSkeleton />;
-  }
+  if (loading) return <PropertyDetailsSkeleton />;
 
   if (notFound || !property) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[var(--color-bg)] px-4 py-10">
-        <div className="max-w-md rounded-[28px] border border-[var(--color-border)] bg-white p-8 text-center shadow-[var(--shadow-card)]">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[22px] bg-[var(--color-primary-soft)] text-[var(--color-primary)]">
-            <Home size={28} />
+      <main
+        dir={isRtl ? "rtl" : "ltr"}
+        className="flex min-h-screen items-center justify-center bg-[var(--color-bg)] px-4"
+      >
+        <div className="w-full max-w-sm rounded-2xl border border-[var(--color-border)] bg-white p-6 text-center shadow-[var(--shadow-card)]">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-primary-soft)] text-[var(--color-primary)]">
+            <Home size={22} />
           </div>
-
-          <h1 className="mt-5 text-2xl font-black text-[var(--color-text)]">
+          <h1 className="mt-4 text-lg font-black text-[var(--color-text)]">
             {locale === "fa"
               ? "آگهی پیدا نشد"
               : locale === "de"
                 ? "Anzeige nicht gefunden"
                 : "Property not found"}
           </h1>
-
-          <p className="mt-2 text-sm font-medium leading-6 text-[var(--color-muted)]">
+          <p className="mt-1.5 text-xs font-medium leading-5 text-[var(--color-muted)]">
             {locale === "fa"
               ? "این آگهی وجود ندارد یا هنوز تایید نشده است."
               : locale === "de"
                 ? "Diese Anzeige existiert nicht oder wurde noch nicht freigegeben."
                 : "This property does not exist or is not approved yet."}
           </p>
-
           <Link
             href={`/${locale}/properties?type=rent`}
-            className="mt-6 inline-flex rounded-[16px] bg-[var(--color-primary)] px-5 py-3 text-sm font-black text-white shadow-[var(--shadow-button)]"
+            className="mt-5 inline-flex rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-black text-white shadow-[var(--shadow-button)]"
           >
             {locale === "fa"
               ? "بازگشت به آگهی‌ها"
@@ -164,49 +163,461 @@ export default function PropertyDetailsClient({
     );
   }
 
-  const images = property.images?.length
-    ? property.images.map((image) => image.url)
-    : [fallbackImage];
-
-  // const currentImage = images[activeImageIndex] || fallbackImage;
-
+  const images = property.images?.length ? property.images : [];
+  const imageCount = images.length || 1;
   const title = getLocalizedText(property.title, locale);
   const description = getLocalizedText(property.description, locale);
   const price = property.price?.toLocaleString("de-DE");
+  const views = property.stats?.views || property.viewCount || 0;
 
   function nextImage() {
-    setActiveImageIndex((value) => (value + 1) % images.length);
+    if (!images.length) return;
+    setActiveImageIndex((v) => (v + 1) % images.length);
   }
-
   function prevImage() {
-    setActiveImageIndex((value) => (value - 1 + images.length) % images.length);
+    if (!images.length) return;
+    setActiveImageIndex((v) => (v - 1 + images.length) % images.length);
   }
-
   function copyLink() {
     navigator.clipboard.writeText(window.location.href);
   }
 
+  const backIcon = isRtl ? (
+    <ChevronRight size={18} />
+  ) : (
+    <ChevronLeft size={18} />
+  );
+
   return (
     <main
       dir={isRtl ? "rtl" : "ltr"}
-      className="min-h-screen bg-[var(--color-bg)] px-3 pb-28 pt-4 md:px-5 md:pb-12 md:pt-5"
+      className="min-h-screen bg-[var(--color-bg)] pb-20 md:pb-10 md:pt-4 md:px-4"
     >
-      <section className="mx-auto max-w-[1488px] overflow-hidden rounded-[30px] border border-[var(--color-border)] bg-white shadow-[var(--shadow-shell)] md:rounded-[34px]">
-        <div className="grid gap-7 px-5 py-5 md:px-8 md:py-8 lg:grid-cols-[1fr_320px] xl:grid-cols-[1fr_360px]">
+      {/* ─── Mobile: full-bleed image hero ─── */}
+      <div className="relative md:hidden">
+        <div
+          className="relative overflow-hidden bg-gray-100"
+          style={{ height: "260px" }}
+        >
+          <PropertyImage
+            image={images[activeImageIndex]}
+            alt={title || "Property image"}
+            size="detail"
+            loading="eager"
+            className="h-full w-full object-cover"
+            fallbackText={
+              locale === "fa"
+                ? "بدون عکس"
+                : locale === "de"
+                  ? "Kein Bild"
+                  : "No image"
+            }
+          />
+
+          {/* Gradient overlays */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+
+          {/* Top bar */}
+          <div className="absolute top-0 inset-x-0 flex items-center justify-between px-3 pt-safe-top pt-3">
+            <Link
+              href={`/${locale}/properties?type=${property.listingType}`}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-md"
+            >
+              {backIcon}
+            </Link>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={copyLink}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-md"
+              >
+                <Share2 size={15} />
+              </button>
+              <div className="h-8 w-8">
+                <FavoriteButton propertyId={property.id} locale={locale} />
+              </div>
+            </div>
+          </div>
+
+          {/* Nav arrows */}
+          {images.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={prevImage}
+                className={`absolute top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-md ${isRtl ? "right-2" : "left-2"}`}
+              >
+                {isRtl ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+              </button>
+              <button
+                type="button"
+                onClick={nextImage}
+                className={`absolute top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-md ${isRtl ? "left-2" : "right-2"}`}
+              >
+                {isRtl ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+              </button>
+            </>
+          )}
+
+          {/* Counter */}
+          <div
+            className={`absolute bottom-3 flex items-center gap-1 rounded-full bg-black/40 px-2 py-0.5 text-[11px] font-bold text-white backdrop-blur-md ${isRtl ? "right-3" : "left-3"}`}
+          >
+            <span>{images.length ? activeImageIndex + 1 : 0}</span>
+            <span className="opacity-60">/</span>
+            <span className="opacity-60">{imageCount}</span>
+          </div>
+
+          {/* Dot indicators */}
+          {images.length > 1 && images.length <= 8 && (
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1">
+              {images.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActiveImageIndex(i)}
+                  className={`rounded-full transition-all ${i === activeImageIndex ? "w-4 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/50"}`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Content card — slides up over image */}
+        <div className="relative -mt-4 rounded-t-[20px] bg-white px-4 pt-4 pb-2 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+          {/* Pill handle */}
+          <div className="mx-auto mb-3 h-1 w-8 rounded-full bg-gray-200" />
+
+          {/* Badge row */}
+          <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-600">
+              <CheckCircle2 size={11} />
+              {locale === "fa"
+                ? "معتبر"
+                : locale === "de"
+                  ? "Geprüft"
+                  : "Verified"}
+            </span>
+            {postedAgo && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-primary-soft)] px-2 py-0.5 text-[11px] font-bold text-[var(--color-primary)]">
+                {postedAgo}
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-bold text-gray-500">
+              <Eye size={11} />
+              {views}
+            </span>
+          </div>
+
+          {/* Title */}
+          <h1 className="text-[17px] font-black leading-snug tracking-tight text-[var(--color-text)]">
+            {title}
+          </h1>
+
+          {/* Location */}
+          <div className="mt-1 flex items-center gap-1 text-[12px] font-medium text-[var(--color-muted)]">
+            <MapPin
+              size={12}
+              className="shrink-0 text-[var(--color-primary)]"
+            />
+            <span className="truncate">
+              {property.location?.city}
+              {property.location?.district
+                ? `, ${property.location.district}`
+                : ""}
+            </span>
+          </div>
+
+          {/* Price */}
+          <div className="mt-2.5 flex items-baseline gap-1">
+            <span className="text-[22px] font-black tracking-tight text-[var(--color-primary)]">
+              €{price}
+            </span>
+            {property.listingType === "rent" && (
+              <span className="text-[12px] font-medium text-[var(--color-muted)]">
+                / {locale === "fa" ? "ماه" : locale === "de" ? "Monat" : "mo"}
+              </span>
+            )}
+          </div>
+
+          {/* Detail chips */}
+          <div className="mt-3 flex gap-2">
+            {property.details?.rooms && (
+              <MobileChip
+                icon={<BedDouble size={13} />}
+                value={`${property.details.rooms}`}
+                label={
+                  locale === "fa" ? "اتاق" : locale === "de" ? "Zi." : "bed"
+                }
+              />
+            )}
+            {property.details?.area && (
+              <MobileChip
+                icon={<Maximize2 size={13} />}
+                value={`${property.details.area}`}
+                label="m²"
+              />
+            )}
+            {property.details?.bathrooms && (
+              <MobileChip
+                icon={<Bath size={13} />}
+                value={`${property.details.bathrooms}`}
+                label={
+                  locale === "fa" ? "حمام" : locale === "de" ? "Bad" : "bath"
+                }
+              />
+            )}
+            {property.features?.furnished && (
+              <MobileChip
+                icon={<Sofa size={13} />}
+                value={
+                  locale === "fa" ? "مبله" : locale === "de" ? "Möbl." : "Furn."
+                }
+              />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Mobile: remaining content ─── */}
+      <div className="md:hidden bg-white px-4 pb-4 space-y-5">
+        {/* Thumbnails */}
+        {images.length > 1 && (
+          <div className="flex gap-2 overflow-x-auto pb-0.5 -mx-4 px-4">
+            {images.map((image, index) => (
+              <button
+                key={`${image.url}-${index}`}
+                type="button"
+                onClick={() => setActiveImageIndex(index)}
+                className={`h-14 w-20 shrink-0 overflow-hidden rounded-xl border-2 transition ${
+                  activeImageIndex === index
+                    ? "border-[var(--color-primary)]"
+                    : "border-transparent opacity-60"
+                }`}
+              >
+                <PropertyImage
+                  image={image}
+                  alt=""
+                  size="thumb"
+                  loading="lazy"
+                  className="h-full w-full object-cover"
+                />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Description */}
+        <div className="border-t border-[var(--color-border)] pt-4">
+          <h2 className="text-[14px] font-black text-[var(--color-text)]">
+            {locale === "fa"
+              ? "درباره این ملک"
+              : locale === "de"
+                ? "Über diese Immobilie"
+                : "About"}
+          </h2>
+          <p
+            className={`mt-2 text-[13px] font-medium leading-6 text-[var(--color-muted)] ${!descExpanded ? "line-clamp-4" : ""}`}
+          >
+            {description}
+          </p>
+          {description && description.length > 200 && (
+            <button
+              onClick={() => setDescExpanded(!descExpanded)}
+              className="mt-1.5 inline-flex items-center gap-0.5 text-[12px] font-bold text-[var(--color-primary)]"
+            >
+              {descExpanded
+                ? locale === "fa"
+                  ? "کمتر"
+                  : locale === "de"
+                    ? "Weniger"
+                    : "Less"
+                : locale === "fa"
+                  ? "بیشتر"
+                  : locale === "de"
+                    ? "Mehr"
+                    : "More"}
+              <ChevronDown
+                size={13}
+                className={`transition-transform ${descExpanded ? "rotate-180" : ""}`}
+              />
+            </button>
+          )}
+        </div>
+
+        {/* Amenities */}
+        {getActiveFeatures(property, locale).length > 0 && (
+          <div className="border-t border-[var(--color-border)] pt-4">
+            <h2 className="text-[14px] font-black text-[var(--color-text)] mb-2.5">
+              {locale === "fa"
+                ? "امکانات"
+                : locale === "de"
+                  ? "Ausstattung"
+                  : "Features"}
+            </h2>
+            <div className="flex flex-wrap gap-1.5">
+              {getActiveFeatures(property, locale).map((f) => (
+                <span
+                  key={f.label}
+                  className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-border)] bg-gray-50 px-2.5 py-1.5 text-[12px] font-bold text-[var(--color-muted)]"
+                >
+                  <span className="text-[var(--color-primary)]">{f.icon}</span>
+                  {f.label}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Rent details */}
+        {property.listingType === "rent" && property.rentDetails && (
+          <div className="border-t border-[var(--color-border)] pt-4">
+            <h2 className="text-[14px] font-black text-[var(--color-text)] mb-2.5">
+              {t.form.rentDetails}
+            </h2>
+            <div className="grid grid-cols-2 gap-1.5">
+              {property.rentDetails.coldRent && (
+                <MobileInfoCard
+                  label={t.form.coldRent}
+                  value={`${property.rentDetails.coldRent.toLocaleString("de-DE")} €`}
+                />
+              )}
+              {property.rentDetails.warmRent && (
+                <MobileInfoCard
+                  label={t.form.warmRent}
+                  value={`${property.rentDetails.warmRent.toLocaleString("de-DE")} €`}
+                />
+              )}
+              {property.rentDetails.utilities && (
+                <MobileInfoCard
+                  label={t.form.utilities}
+                  value={`${property.rentDetails.utilities.toLocaleString("de-DE")} €`}
+                />
+              )}
+              {property.rentDetails.deposit && (
+                <MobileInfoCard
+                  label={t.form.deposit}
+                  value={`${property.rentDetails.deposit.toLocaleString("de-DE")} €`}
+                />
+              )}
+              {property.rentDetails.availableFrom && (
+                <MobileInfoCard
+                  label={t.form.availableFrom}
+                  value={property.rentDetails.availableFrom}
+                  className="col-span-2"
+                />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Map */}
+        <div className="border-t border-[var(--color-border)] pt-4">
+          <h2 className="text-[14px] font-black text-[var(--color-text)] mb-2.5">
+            {t.form.location}
+          </h2>
+          <div className="h-[160px] overflow-hidden rounded-xl">
+            <PropertyMap
+              lat={property.location?.lat}
+              lng={property.location?.lng}
+              locale={locale}
+            />
+          </div>
+        </div>
+
+        {/* Contact card (mobile) */}
+        <div className="border-t border-[var(--color-border)] pt-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-sm font-black text-[var(--color-primary)]">
+              {property.contact?.name?.charAt(0) || "A"}
+            </div>
+            <div>
+              <p className="text-[13px] font-black text-[var(--color-text)]">
+                {property.contact?.name ||
+                  (locale === "fa"
+                    ? "مشاور ملک"
+                    : locale === "de"
+                      ? "Property Manager"
+                      : "Property Manager")}
+              </p>
+              <p className="text-[11px] font-medium text-[var(--color-muted)]">
+                {locale === "fa" ? "مدیر ملک" : "Professional Agent"}
+              </p>
+            </div>
+          </div>
+          <InquiryForm property={property} locale={locale} />
+        </div>
+
+        {/* Report */}
+        <div className="border-t border-[var(--color-border)] pt-3 pb-1">
+          <ReportPropertyButton property={property} locale={locale} />
+        </div>
+
+        {/* Similar */}
+        {similarProperties.length > 0 && (
+          <div className="border-t border-[var(--color-border)] pt-4">
+            <h2 className="text-[14px] font-black text-[var(--color-text)] mb-2.5">
+              {locale === "fa"
+                ? "آگهی‌های مشابه"
+                : locale === "de"
+                  ? "Ähnliche Anzeigen"
+                  : "Similar listings"}
+            </h2>
+            <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4">
+              {similarProperties.map((item) => {
+                const itemTitle = getLocalizedText(item.title, locale);
+                const href = item.slug
+                  ? `/${locale}/properties/${item.slug}`
+                  : `/${locale}/properties/${item.id}`;
+                return (
+                  <Link
+                    key={item.id}
+                    href={href}
+                    className="w-40 shrink-0 overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-sm"
+                  >
+                    <div className="h-24 overflow-hidden bg-gray-100">
+                      <PropertyImage
+                        image={item.images?.[0]}
+                        alt={itemTitle || ""}
+                        size="thumb"
+                        loading="lazy"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="p-2.5">
+                      <h3 className="line-clamp-2 text-[12px] font-bold leading-4 text-[var(--color-text)]">
+                        {itemTitle}
+                      </h3>
+                      <p className="mt-0.5 text-[11px] text-[var(--color-muted)]">
+                        {item.location?.city || "-"}
+                      </p>
+                      <p className="mt-1 text-[13px] font-black text-[var(--color-primary)]">
+                        €{Number(item.price || 0).toLocaleString("de-DE")}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ─── Desktop layout ─── */}
+      <section className="mx-auto hidden max-w-[1488px] overflow-hidden rounded-[28px] border border-[var(--color-border)] bg-white shadow-[var(--shadow-shell)] md:block">
+        <div className="grid gap-6 px-6 py-6 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="min-w-0">
-            <div className="mb-5 hidden items-center gap-2 text-xs font-bold text-[var(--color-muted)] md:flex">
+            {/* Breadcrumb */}
+            <div className="mb-4 flex items-center gap-1.5 text-xs font-semibold text-[var(--color-muted)]">
               <Link
                 href={`/${locale}`}
-                className="transition hover:text-[var(--color-primary)]"
+                className="hover:text-[var(--color-primary)] transition"
               >
                 {locale === "fa" ? "خانه" : locale === "de" ? "Start" : "Home"}
               </Link>
-
-              <span>›</span>
-
+              <span className="opacity-40">{isRtl ? "‹" : "›"}</span>
               <Link
                 href={`/${locale}/properties?type=${property.listingType}`}
-                className="transition hover:text-[var(--color-primary)]"
+                className="hover:text-[var(--color-primary)] transition"
               >
                 {property.listingType === "rent"
                   ? locale === "fa"
@@ -220,119 +631,107 @@ export default function PropertyDetailsClient({
                       ? "Kaufen"
                       : "Buy"}
               </Link>
-
-              <span>›</span>
-
+              <span className="opacity-40">{isRtl ? "‹" : "›"}</span>
               <span>{property.location?.city}</span>
-
               {property.location?.district && (
                 <>
-                  <span>›</span>
+                  <span className="opacity-40">{isRtl ? "‹" : "›"}</span>
                   <span>{property.location.district}</span>
                 </>
               )}
-
-              <span>›</span>
-
+              <span className="opacity-40">{isRtl ? "‹" : "›"}</span>
               <span className="line-clamp-1 text-[var(--color-primary)]">
                 {title}
               </span>
             </div>
 
-            <div className="mb-4 flex items-center justify-between md:hidden">
-              <Link
-                href={`/${locale}/properties?type=${property.listingType}`}
-                className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-[var(--color-border)]"
-              >
-                {isRtl ? <ArrowRight size={20} /> : <ArrowLeft size={20} />}
-              </Link>
-
-              <div className="flex items-center gap-2">
-                <div className="relative h-11 w-11">
-                  <FavoriteButton propertyId={property.id} locale={locale} />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={copyLink}
-                  className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[var(--color-text)] shadow-sm ring-1 ring-[var(--color-border)]"
-                >
-                  <Share2 size={19} />
-                </button>
-              </div>
-            </div>
-
-            <div className="relative overflow-hidden rounded-[24px] bg-gray-100 md:rounded-[28px]">
-              <img
-                src={currentImage}
-                srcSet={
-                  activeSources.detail && activeSources.detail2x
-                    ? `${activeSources.detail} 1200w, ${activeSources.detail2x} 1600w`
-                    : undefined
+            {/* Image */}
+            <div className="relative overflow-hidden rounded-2xl bg-gray-100">
+              <PropertyImage
+                image={images[activeImageIndex]}
+                alt={title || "Property image"}
+                size="detail"
+                loading="eager"
+                className="h-[420px] w-full object-cover xl:h-[480px]"
+                fallbackText={
+                  locale === "fa"
+                    ? "بدون عکس"
+                    : locale === "de"
+                      ? "Kein Bild"
+                      : "No image"
                 }
-                sizes="(max-width: 768px) 100vw, 70vw"
-                alt={title}
-                className="h-[300px] w-full object-cover sm:h-[380px] md:h-[500px]"
               />
-
               {images.length > 1 && (
                 <>
                   <button
                     type="button"
                     onClick={prevImage}
-                    className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[var(--color-text)] shadow-md"
+                    className={`absolute top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[var(--color-text)] shadow-md backdrop-blur-sm ${isRtl ? "right-3" : "left-3"}`}
                   >
-                    <ArrowLeft size={21} />
+                    {isRtl ? (
+                      <ChevronRight size={18} />
+                    ) : (
+                      <ChevronLeft size={18} />
+                    )}
                   </button>
-
                   <button
                     type="button"
                     onClick={nextImage}
-                    className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[var(--color-text)] shadow-md"
+                    className={`absolute top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[var(--color-text)] shadow-md backdrop-blur-sm ${isRtl ? "left-3" : "right-3"}`}
                   >
-                    <ArrowRight size={21} />
+                    {isRtl ? (
+                      <ChevronLeft size={18} />
+                    ) : (
+                      <ChevronRight size={18} />
+                    )}
                   </button>
                 </>
               )}
-
-              <div className="absolute bottom-4 left-4 rounded-full bg-black/55 px-3 py-1.5 text-sm font-black text-white backdrop-blur-md">
-                {activeImageIndex + 1} / {images.length}
+              <div
+                className={`absolute bottom-3 rounded-full bg-black/50 px-2.5 py-1 text-xs font-bold text-white backdrop-blur-md ${isRtl ? "right-3" : "left-3"}`}
+              >
+                {images.length ? activeImageIndex + 1 : 0} / {imageCount}
               </div>
-
-              <button className="absolute bottom-4 right-4 hidden items-center gap-2 rounded-[14px] bg-white px-4 py-3 text-sm font-black text-[var(--color-text)] shadow-md md:inline-flex">
-                <Maximize2 size={18} />
+              <button
+                type="button"
+                className={`absolute bottom-3 hidden items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-xs font-bold text-[var(--color-text)] shadow-md md:inline-flex ${isRtl ? "left-3" : "right-3"}`}
+              >
+                <Maximize2 size={15} />
                 {locale === "fa"
-                  ? "مشاهده عکس‌ها"
+                  ? "همه عکس‌ها"
                   : locale === "de"
                     ? "Alle Fotos"
-                    : "View all photos"}
+                    : "All photos"}
               </button>
             </div>
 
-            <div className="mt-5 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div>
-                <h1 className="text-[28px] font-black leading-tight tracking-[-0.045em] text-[var(--color-text)] md:text-[36px]">
-                  {title}
-                </h1>
+            {images.length > 1 && (
+              <div className="mt-2.5 flex gap-2 overflow-x-auto pb-0.5">
+                {images.map((image, index) => (
+                  <button
+                    key={`${image.url}-${index}`}
+                    type="button"
+                    onClick={() => setActiveImageIndex(index)}
+                    className={`h-16 w-24 shrink-0 overflow-hidden rounded-xl border-2 transition ${activeImageIndex === index ? "border-[var(--color-primary)]" : "border-transparent opacity-60 hover:opacity-80"}`}
+                  >
+                    <PropertyImage
+                      image={image}
+                      alt=""
+                      size="thumb"
+                      loading="lazy"
+                      className="h-full w-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
 
-                <div className="mt-3 flex flex-wrap items-center gap-3 text-sm font-bold text-[var(--color-muted)]">
-                  <span className="inline-flex items-center gap-1">
-                    <MapPin size={17} />
-                    {property.location?.city}
-                    {property.location?.district
-                      ? `, ${property.location.district}`
-                      : ""}
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#fffdf9] px-3 py-1 text-sm font-black text-[var(--color-muted)] ring-1 ring-[var(--color-border)]">
-                    <Eye size={15} />
-                    {locale === "fa"
-                      ? `${property.viewCount || 0} بازدید`
-                      : locale === "de"
-                        ? `${property.viewCount || 0} Aufrufe`
-                        : `${property.viewCount || 0} views`}
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-primary-soft)] px-3 py-1 text-[var(--color-primary)]">
-                    <CheckCircle2 size={15} />
+            {/* Title row */}
+            <div className="mt-4 flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-600">
+                    <CheckCircle2 size={12} />
                     {locale === "fa"
                       ? "معتبر"
                       : locale === "de"
@@ -340,37 +739,59 @@ export default function PropertyDetailsClient({
                         : "Verified"}
                   </span>
                   {postedAgo && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-primary-soft)] px-3 py-1 text-sm font-black text-[var(--color-primary)]">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-primary-soft)] px-2 py-0.5 text-xs font-bold text-[var(--color-primary)]">
                       {postedAgo}
                     </span>
                   )}
-                </div>
-
-                <p className="mt-4 text-[30px] font-black text-[var(--color-primary)] md:text-[34px]">
-                  €{price}
-                  <span className="text-base font-bold text-[var(--color-muted)]">
-                    {" "}
-                    /{" "}
+                  <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-500">
+                    <Eye size={12} />
+                    {views}{" "}
                     {locale === "fa"
-                      ? "ماه"
+                      ? "بازدید"
                       : locale === "de"
-                        ? "Monat"
-                        : "month"}
+                        ? "Aufrufe"
+                        : "views"}
                   </span>
-                </p>
+                </div>
+                <h1 className="text-2xl font-black leading-snug tracking-tight text-[var(--color-text)] xl:text-3xl">
+                  {title}
+                </h1>
+                <div className="mt-1.5 flex items-center gap-1 text-sm font-medium text-[var(--color-muted)]">
+                  <MapPin size={14} className="text-[var(--color-primary)]" />
+                  <span>
+                    {property.location?.city}
+                    {property.location?.district
+                      ? `, ${property.location.district}`
+                      : ""}
+                  </span>
+                </div>
+                <div className="mt-2.5 flex items-baseline gap-1">
+                  <span className="text-2xl font-black text-[var(--color-primary)] xl:text-3xl">
+                    €{price}
+                  </span>
+                  {property.listingType === "rent" && (
+                    <span className="text-sm font-medium text-[var(--color-muted)]">
+                      /{" "}
+                      {locale === "fa"
+                        ? "ماه"
+                        : locale === "de"
+                          ? "Monat"
+                          : "month"}
+                    </span>
+                  )}
+                </div>
               </div>
 
-              <div className="hidden gap-3 md:flex">
-                <div className="relative h-12 w-12">
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="h-10 w-10">
                   <FavoriteButton propertyId={property.id} locale={locale} />
                 </div>
-
                 <button
                   type="button"
                   onClick={copyLink}
-                  className="flex h-12 items-center gap-2 rounded-[14px] border border-[var(--color-border)] bg-white px-4 text-sm font-black text-[var(--color-text)] shadow-sm"
+                  className="flex h-10 items-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-white px-3 text-sm font-bold text-[var(--color-text)] shadow-sm"
                 >
-                  <Share2 size={18} />
+                  <Share2 size={15} />
                   {locale === "fa"
                     ? "اشتراک"
                     : locale === "de"
@@ -380,9 +801,10 @@ export default function PropertyDetailsClient({
               </div>
             </div>
 
-            <div className="mt-5 grid grid-cols-4 gap-2 md:flex md:flex-wrap md:gap-3">
+            {/* Detail chips */}
+            <div className="mt-3 flex flex-wrap gap-2">
               <DetailBox
-                icon={<BedDouble size={20} />}
+                icon={<BedDouble size={16} />}
                 label={
                   locale === "fa"
                     ? "اتاق"
@@ -392,25 +814,22 @@ export default function PropertyDetailsClient({
                 }
                 value={property.details?.rooms || "-"}
               />
-
               <DetailBox
-                icon={<Maximize2 size={20} />}
+                icon={<Maximize2 size={16} />}
                 label={
                   locale === "fa" ? "متراژ" : locale === "de" ? "Größe" : "Size"
                 }
                 value={`${property.details?.area || "-"} m²`}
               />
-
               <DetailBox
-                icon={<Bath size={20} />}
+                icon={<Bath size={16} />}
                 label={
                   locale === "fa" ? "حمام" : locale === "de" ? "Bad" : "Bath"
                 }
                 value={property.details?.bathrooms || 1}
               />
-
               <DetailBox
-                icon={<Sofa size={20} />}
+                icon={<Sofa size={16} />}
                 label={
                   locale === "fa"
                     ? "مبله"
@@ -430,59 +849,35 @@ export default function PropertyDetailsClient({
               />
             </div>
 
-            <section className="mt-7 border-t border-[var(--color-border)] pt-6">
-              <h2 className="text-[22px] font-black tracking-[-0.03em] text-[var(--color-text)]">
+            {/* About */}
+            <section className="mt-5 border-t border-[var(--color-border)] pt-5">
+              <h2 className="text-base font-black text-[var(--color-text)]">
                 {locale === "fa"
                   ? "درباره این ملک"
                   : locale === "de"
                     ? "Über diese Immobilie"
                     : "About this property"}
               </h2>
-
-              <p className="mt-3 max-w-3xl whitespace-pre-line text-sm font-semibold leading-7 text-[var(--color-muted)] md:text-base">
+              <p className="mt-2 max-w-3xl whitespace-pre-line text-sm font-medium leading-7 text-[var(--color-muted)]">
                 {description}
               </p>
-
-              <button className="mt-3 inline-flex items-center gap-1 text-sm font-black text-[var(--color-primary)] md:hidden">
-                {locale === "fa"
-                  ? "بیشتر بخوانید"
-                  : locale === "de"
-                    ? "Mehr lesen"
-                    : "Read more"}
-                <ChevronDown size={16} />
-              </button>
             </section>
 
-            <section className="mt-7 border-t border-[var(--color-border)] pt-6">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-[22px] font-black tracking-[-0.03em] text-[var(--color-text)]">
-                  {locale === "fa"
-                    ? "امکانات"
-                    : locale === "de"
-                      ? "Ausstattung"
-                      : "Amenities & features"}
-                </h2>
-
-                <button className="text-sm font-black text-[var(--color-primary)] md:hidden">
-                  {locale === "fa"
-                    ? "مشاهده همه"
-                    : locale === "de"
-                      ? "Alle ansehen"
-                      : "See all"}
-                </button>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                {getActiveFeatures(property, locale).map((feature) => (
-                  <Amenity
-                    key={feature.label}
-                    icon={feature.icon}
-                    label={feature.label}
-                  />
+            {/* Amenities */}
+            <section className="mt-5 border-t border-[var(--color-border)] pt-5">
+              <h2 className="text-base font-black text-[var(--color-text)] mb-3">
+                {locale === "fa"
+                  ? "امکانات"
+                  : locale === "de"
+                    ? "Ausstattung"
+                    : "Amenities & features"}
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {getActiveFeatures(property, locale).map((f) => (
+                  <Amenity key={f.label} icon={f.icon} label={f.label} />
                 ))}
-
                 {getActiveFeatures(property, locale).length === 0 && (
-                  <p className="text-sm font-semibold text-[var(--color-muted)]">
+                  <p className="text-sm font-medium text-[var(--color-muted)]">
                     {locale === "fa"
                       ? "امکانات خاصی ثبت نشده است."
                       : locale === "de"
@@ -493,11 +888,12 @@ export default function PropertyDetailsClient({
               </div>
             </section>
 
-            <section className="mt-7 border-t border-[var(--color-border)] pt-6">
-              <h2 className="mb-4 text-[22px] font-black tracking-[-0.03em] text-[var(--color-text)]">
+            {/* Map */}
+            <section className="mt-5 border-t border-[var(--color-border)] pt-5">
+              <h2 className="text-base font-black text-[var(--color-text)] mb-3">
                 {t.form.location}
               </h2>
-              <div className="h-[170px] overflow-hidden rounded-[22px] md:h-[230px]">
+              <div className="h-[200px] overflow-hidden rounded-2xl">
                 <PropertyMap
                   lat={property.location?.lat}
                   lng={property.location?.lng}
@@ -506,57 +902,45 @@ export default function PropertyDetailsClient({
               </div>
             </section>
 
+            {/* Rent details */}
             {property.listingType === "rent" && property.rentDetails && (
-              <section className="mt-7 border-t border-[var(--color-border)] pt-6">
-                <h2 className="text-[22px] font-black tracking-[-0.03em] text-[var(--color-text)]">
+              <section className="mt-5 border-t border-[var(--color-border)] pt-5">
+                <h2 className="text-base font-black text-[var(--color-text)] mb-3">
                   {t.form.rentDetails}
                 </h2>
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-2 sm:grid-cols-2">
                   <InfoRow
                     label={t.form.coldRent}
                     value={
                       property.rentDetails.coldRent
-                        ? `${property.rentDetails.coldRent.toLocaleString(
-                            "de-DE",
-                          )} €`
+                        ? `${property.rentDetails.coldRent.toLocaleString("de-DE")} €`
                         : "-"
                     }
                   />
-
                   <InfoRow
                     label={t.form.warmRent}
                     value={
                       property.rentDetails.warmRent
-                        ? `${property.rentDetails.warmRent.toLocaleString(
-                            "de-DE",
-                          )} €`
+                        ? `${property.rentDetails.warmRent.toLocaleString("de-DE")} €`
                         : "-"
                     }
                   />
-
                   <InfoRow
                     label={t.form.utilities}
                     value={
                       property.rentDetails.utilities
-                        ? `${property.rentDetails.utilities.toLocaleString(
-                            "de-DE",
-                          )} €`
+                        ? `${property.rentDetails.utilities.toLocaleString("de-DE")} €`
                         : "-"
                     }
                   />
-
                   <InfoRow
                     label={t.form.deposit}
                     value={
                       property.rentDetails.deposit
-                        ? `${property.rentDetails.deposit.toLocaleString(
-                            "de-DE",
-                          )} €`
+                        ? `${property.rentDetails.deposit.toLocaleString("de-DE")} €`
                         : "-"
                     }
                   />
-
                   <InfoRow
                     label={t.form.availableFrom}
                     value={property.rentDetails.availableFrom || "-"}
@@ -565,37 +949,84 @@ export default function PropertyDetailsClient({
               </section>
             )}
 
-            <section className="mt-7 border-t border-[var(--color-border)] pt-6 lg:hidden">
-              <h2 className="text-[22px] font-black tracking-[-0.03em] text-[var(--color-text)]">
+            {/* Desktop inline contact (hidden on lg+) */}
+            <section className="mt-5 border-t border-[var(--color-border)] pt-5 lg:hidden">
+              <h2 className="text-base font-black text-[var(--color-text)] mb-1">
                 {locale === "fa"
                   ? "تماس با آگهی‌دهنده"
                   : locale === "de"
                     ? "Anbieter kontaktieren"
                     : "Contact agent"}
               </h2>
-
-              <p className="mt-2 text-sm font-medium leading-6 text-[var(--color-muted)]">
-                {locale === "fa"
-                  ? "برای این ملک پیام ارسال کنید."
-                  : locale === "de"
-                    ? "Sende eine Nachricht zu dieser Immobilie."
-                    : "Send a message about this property."}
-              </p>
-
               <InquiryForm property={property} locale={locale} />
             </section>
+
+            <div className="mt-5 border-t border-[var(--color-border)] pt-4">
+              <ReportPropertyButton property={property} locale={locale} />
+            </div>
+
+            {/* Similar */}
+            {similarProperties.length > 0 && (
+              <section className="mt-5 border-t border-[var(--color-border)] pt-5">
+                <h2 className="text-base font-black text-[var(--color-text)] mb-3">
+                  {locale === "fa"
+                    ? "آگهی‌های مشابه"
+                    : locale === "de"
+                      ? "Ähnliche Anzeigen"
+                      : "Similar listings"}
+                </h2>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  {similarProperties.map((item) => {
+                    const itemTitle = getLocalizedText(item.title, locale);
+                    const href = item.slug
+                      ? `/${locale}/properties/${item.slug}`
+                      : `/${locale}/properties/${item.id}`;
+                    return (
+                      <Link
+                        key={item.id}
+                        href={href}
+                        className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                      >
+                        <div className="h-28 overflow-hidden bg-gray-100">
+                          <PropertyImage
+                            image={item.images?.[0]}
+                            alt={itemTitle || ""}
+                            size="thumb"
+                            loading="lazy"
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                        <div className="p-3">
+                          <h3 className="line-clamp-2 text-xs font-black leading-4 text-[var(--color-text)]">
+                            {itemTitle}
+                          </h3>
+                          <p className="mt-0.5 text-[11px] font-medium text-[var(--color-muted)]">
+                            {item.location?.city || "-"}
+                            {item.location?.district
+                              ? `, ${item.location.district}`
+                              : ""}
+                          </p>
+                          <p className="mt-1.5 text-sm font-black text-[var(--color-primary)]">
+                            €{Number(item.price || 0).toLocaleString("de-DE")}
+                          </p>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
           </div>
 
+          {/* Sidebar */}
           <aside className="hidden lg:block">
-            <div className="sticky top-28 space-y-5">
+            <div className="sticky top-24 space-y-4">
               <ContactCard property={property} locale={locale} />
-
-              <div className="rounded-[24px] border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-card)]">
-                <h3 className="text-xl font-black text-[var(--color-text)]">
+              <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4 shadow-[var(--shadow-card)]">
+                <h3 className="text-sm font-black text-[var(--color-text)] mb-3">
                   {t.form.location}
                 </h3>
-
-                <div className="mt-4 h-[260px] overflow-hidden rounded-[18px]">
+                <div className="h-[220px] overflow-hidden rounded-xl">
                   <PropertyMap
                     lat={property.location?.lat}
                     lng={property.location?.lng}
@@ -608,22 +1039,23 @@ export default function PropertyDetailsClient({
         </div>
       </section>
 
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--color-border)] bg-white/95 px-4 py-3 shadow-[0_-12px_35px_rgba(16,24,40,0.10)] backdrop-blur-xl lg:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-2 gap-3">
+      {/* ─── Mobile bottom CTA bar ─── */}
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--color-border)] bg-white/95 px-3 py-2 backdrop-blur-xl md:hidden">
+        <div className="mx-auto grid max-w-md grid-cols-2 gap-2">
           {property.contact?.phone ? (
             <a
               href={`tel:${property.contact.phone}`}
-              className="flex h-14 items-center justify-center gap-2 rounded-[16px] border border-[var(--color-border)] bg-white text-sm font-black text-[var(--color-text)] shadow-sm"
+              className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-white text-sm font-bold text-[var(--color-text)] shadow-sm"
             >
-              <Phone size={19} />
+              <Phone size={16} />
               {locale === "fa" ? "تماس" : locale === "de" ? "Anrufen" : "Call"}
             </a>
           ) : (
             <a
               href={`mailto:${property.contact?.email || ""}`}
-              className="flex h-14 items-center justify-center gap-2 rounded-[16px] border border-[var(--color-border)] bg-white text-sm font-black text-[var(--color-text)] shadow-sm"
+              className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-white text-sm font-bold text-[var(--color-text)] shadow-sm"
             >
-              <Mail size={19} />
+              <Mail size={16} />
               {locale === "fa"
                 ? "پیام"
                 : locale === "de"
@@ -631,21 +1063,63 @@ export default function PropertyDetailsClient({
                   : "Message"}
             </a>
           )}
-
           <a
             href={`mailto:${property.contact?.email || ""}`}
-            className="flex h-14 items-center justify-center gap-2 rounded-[16px] bg-[var(--color-accent)] text-sm font-black text-white shadow-[var(--shadow-button)]"
+            className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-[var(--color-accent)] text-sm font-bold text-white shadow-[var(--shadow-button)]"
           >
-            <CalendarDays size={19} />
+            <CalendarDays size={16} />
             {locale === "fa"
               ? "رزرو بازدید"
               : locale === "de"
                 ? "Besichtigung"
-                : "Book a viewing"}
+                : "Book viewing"}
           </a>
         </div>
       </div>
     </main>
+  );
+}
+
+// ─── Sub-components ───────────────────────────────────────────────
+
+function MobileChip({
+  icon,
+  value,
+  label,
+}: {
+  icon: React.ReactNode;
+  value: string;
+  label?: string;
+}) {
+  return (
+    <div className="flex items-center gap-1 rounded-lg bg-[var(--color-primary-soft)] px-2.5 py-1.5 text-[12px] font-black text-[var(--color-primary)]">
+      {icon}
+      <span>{value}</span>
+      {label && <span className="font-medium opacity-70">{label}</span>}
+    </div>
+  );
+}
+
+function MobileInfoCard({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`rounded-xl border border-[var(--color-border)] bg-gray-50 px-3 py-2.5 ${className || ""}`}
+    >
+      <p className="text-[11px] font-medium text-[var(--color-muted)]">
+        {label}
+      </p>
+      <p className="mt-0.5 text-[13px] font-black text-[var(--color-text)]">
+        {value}
+      </p>
+    </div>
   );
 }
 
@@ -659,12 +1133,10 @@ function DetailBox({
   value: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-[68px] flex-col items-center justify-center gap-1 rounded-[16px] border border-[var(--color-border)] bg-white px-2 text-center text-xs font-black text-[var(--color-text)] shadow-sm md:min-h-[64px] md:min-w-[128px] md:flex-row md:gap-3 md:px-4">
+    <div className="flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-white px-3 py-2.5 text-sm font-black text-[var(--color-text)] shadow-sm">
       <span className="text-[var(--color-primary)]">{icon}</span>
-
       <span>{value}</span>
-
-      <span className="text-[11px] font-bold text-[var(--color-muted)] md:hidden">
+      <span className="text-xs font-medium text-[var(--color-muted)]">
         {label}
       </span>
     </div>
@@ -673,12 +1145,11 @@ function DetailBox({
 
 function InfoRow({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-[16px] border border-[var(--color-border)] bg-white px-4 py-3 shadow-sm">
-      <span className="text-sm font-bold text-[var(--color-muted)]">
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-white px-3.5 py-2.5 shadow-sm">
+      <span className="text-xs font-medium text-[var(--color-muted)]">
         {label}
       </span>
-
-      <span className="text-sm font-black text-[var(--color-text)]">
+      <span className="shrink-0 text-xs font-black text-[var(--color-text)]">
         {value || "-"}
       </span>
     </div>
@@ -687,9 +1158,9 @@ function InfoRow({ label, value }: { label: string; value?: React.ReactNode }) {
 
 function Amenity({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <div className="inline-flex items-center gap-2 rounded-[14px] border border-[var(--color-border)] bg-white px-4 py-3 text-sm font-black text-[var(--color-muted)] shadow-sm">
+    <div className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-xs font-bold text-[var(--color-muted)] shadow-sm">
       <span className="text-[var(--color-primary)]">{icon}</span>
-      {label}
+      <span>{label}</span>
     </div>
   );
 }
@@ -702,8 +1173,8 @@ function ContactCard({
   locale: Locale;
 }) {
   return (
-    <div className="rounded-[24px] border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-card)]">
-      <p className="text-xl font-black text-[var(--color-text)]">
+    <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4 shadow-[var(--shadow-card)]">
+      <p className="text-sm font-black text-[var(--color-text)]">
         {locale === "fa"
           ? "تماس با مشاور"
           : locale === "de"
@@ -711,27 +1182,17 @@ function ContactCard({
             : "Contact agent"}
       </p>
 
-      <div className="mt-5 flex items-center gap-3">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-lg font-black text-[var(--color-primary)]">
+      <div className="mt-3 flex items-center gap-2.5">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-sm font-black text-[var(--color-primary)]">
           {property.contact?.name?.charAt(0) || "A"}
         </div>
-
-        <div>
-          <h2 className="font-black text-[var(--color-text)]">
+        <div className="min-w-0">
+          <h2 className="truncate text-sm font-black text-[var(--color-text)]">
             {property.contact?.name ||
-              (locale === "fa"
-                ? "مشاور ملک"
-                : locale === "de"
-                  ? "Property Manager"
-                  : "Property Manager")}
+              (locale === "fa" ? "مشاور ملک" : "Property Manager")}
           </h2>
-
-          <p className="text-sm font-semibold text-[var(--color-muted)]">
-            {locale === "fa"
-              ? "مدیر ملک"
-              : locale === "de"
-                ? "Property Manager"
-                : "Professional Agent"}
+          <p className="text-xs font-medium text-[var(--color-muted)]">
+            {locale === "fa" ? "مدیر ملک" : "Professional Agent"}
           </p>
         </div>
       </div>
@@ -739,20 +1200,20 @@ function ContactCard({
       {property.contact?.phone && (
         <a
           href={`tel:${property.contact.phone}`}
-          className="mt-5 flex h-13 items-center justify-center gap-2 rounded-[16px] border border-[var(--color-border)] bg-white px-4 py-4 text-sm font-black text-[var(--color-text)] shadow-sm"
+          className="mt-3 flex h-10 items-center justify-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-white px-3 text-sm font-bold text-[var(--color-text)] shadow-sm"
         >
-          <Phone size={18} />
-          {property.contact.phone}
+          <Phone size={15} />
+          <span className="truncate text-sm">{property.contact.phone}</span>
         </a>
       )}
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-3 space-y-2">
         {property.contact?.email && (
           <a
             href={`mailto:${property.contact.email}`}
-            className="flex h-14 items-center justify-center gap-2 rounded-[16px] bg-[var(--color-primary)] px-5 text-sm font-black text-white shadow-[var(--shadow-button)]"
+            className="flex h-10 items-center justify-center gap-1.5 rounded-xl bg-[var(--color-primary)] px-4 text-sm font-bold text-white shadow-[var(--shadow-button)]"
           >
-            <MessageCircle size={18} />
+            <MessageCircle size={15} />
             {locale === "fa"
               ? "پیام"
               : locale === "de"
@@ -760,19 +1221,17 @@ function ContactCard({
                 : "Message"}
           </a>
         )}
-
         <a
           href={`mailto:${property.contact?.email || ""}`}
-          className="flex h-14 items-center justify-center gap-2 rounded-[16px] bg-[var(--color-accent)] px-5 text-sm font-black text-white shadow-[var(--shadow-button)]"
+          className="flex h-10 items-center justify-center gap-1.5 rounded-xl bg-[var(--color-accent)] px-4 text-sm font-bold text-white shadow-[var(--shadow-button)]"
         >
-          <CalendarDays size={18} />
+          <CalendarDays size={15} />
           {locale === "fa"
             ? "رزرو بازدید"
             : locale === "de"
               ? "Besichtigung buchen"
               : "Book a viewing"}
         </a>
-
         <FavoriteButton
           propertyId={property.id}
           variant="full"
@@ -780,44 +1239,18 @@ function ContactCard({
         />
       </div>
 
-      <div className="mt-5 border-t border-[var(--color-border)] pt-5">
-        <p className="text-sm font-black text-[var(--color-text)]">
+      <div className="mt-4 border-t border-[var(--color-border)] pt-4">
+        <p className="text-xs font-black text-[var(--color-text)] mb-2">
           {locale === "fa"
             ? "ارسال پیام"
             : locale === "de"
               ? "Nachricht senden"
               : "Send message"}
         </p>
-
         <InquiryForm property={property} locale={locale} />
       </div>
     </div>
   );
-}
-
-function getPropertyTypeLabel(type: Property["propertyType"], locale: Locale) {
-  const labels = {
-    en: {
-      apartment: "Apartment",
-      house: "House",
-      studio: "Studio",
-      room: "Room",
-    },
-    fa: {
-      apartment: "آپارتمان",
-      house: "خانه",
-      studio: "استودیو",
-      room: "اتاق",
-    },
-    de: {
-      apartment: "Wohnung",
-      house: "Haus",
-      studio: "Studio",
-      room: "Zimmer",
-    },
-  };
-
-  return labels[locale][type] || labels.en[type];
 }
 
 function getActiveFeatures(property: Property, locale: Locale) {
@@ -830,8 +1263,7 @@ function getActiveFeatures(property: Property, locale: Locale) {
       furnished: "Furnished",
       petsAllowed: "Pet friendly",
       cellar: "Cellar",
-      fittedKitchen: "Dishwasher",
-      wifi: "Wi-Fi",
+      fittedKitchen: "Fitted kitchen",
     },
     fa: {
       balcony: "بالکن",
@@ -842,7 +1274,6 @@ function getActiveFeatures(property: Property, locale: Locale) {
       petsAllowed: "حیوان خانگی مجاز",
       cellar: "انباری",
       fittedKitchen: "آشپزخانه آماده",
-      wifi: "وای‌فای",
     },
     de: {
       balcony: "Balkon",
@@ -853,40 +1284,27 @@ function getActiveFeatures(property: Property, locale: Locale) {
       petsAllowed: "Haustiere erlaubt",
       cellar: "Keller",
       fittedKitchen: "Einbauküche",
-      wifi: "WLAN",
     },
   };
-
   const featureIcons = {
-    balcony: <Home size={18} />,
-    garden: <Home size={18} />,
-    elevator: <Building2 size={18} />,
-    parking: <MapPin size={18} />,
-    furnished: <Sofa size={18} />,
-    petsAllowed: <CheckCircle2 size={18} />,
-    cellar: <Home size={18} />,
-    fittedKitchen: <Home size={18} />,
-    wifi: <Wifi size={18} />,
+    balcony: <Home size={14} />,
+    garden: <Home size={14} />,
+    elevator: <Building2 size={14} />,
+    parking: <MapPin size={14} />,
+    furnished: <Sofa size={14} />,
+    petsAllowed: <CheckCircle2 size={14} />,
+    cellar: <Home size={14} />,
+    fittedKitchen: <Home size={14} />,
   };
-
   const features = property.features || {};
   const labels = featureLabels[locale] || featureLabels.en;
-
-  const activeFeatures = Object.entries(features)
+  return Object.entries(features)
     .filter(([, value]) => Boolean(value))
     .map(([key]) => ({
       label: labels[key as keyof typeof labels],
       icon: featureIcons[key as keyof typeof featureIcons] || (
-        <CheckCircle2 size={18} />
+        <CheckCircle2 size={14} />
       ),
     }))
     .filter((item) => Boolean(item.label));
-
-  return [
-    ...activeFeatures,
-    {
-      label: labels.wifi,
-      icon: featureIcons.wifi,
-    },
-  ];
 }

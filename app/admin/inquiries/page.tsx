@@ -17,73 +17,19 @@ import {
   User,
   XCircle,
 } from "lucide-react";
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  orderBy,
-  query,
-  updateDoc,
-} from "firebase/firestore";
-
 import LoadingScreen from "@/app/components/LoadingScreen";
 import { useAuth } from "@/app/context/AuthContext";
-import { db } from "@/app/lib/firebase";
+import {
+  deleteInquiry,
+  getAllInquiries,
+  type Inquiry,
+  type InquiryStatus,
+  updateInquiryStatus,
+} from "@/app/lib/services/inquiryService";
+import { toDate } from "@/app/lib/firestoreHelpers";
+import type { FirestoreDate } from "@/app/lib/firestoreHelpers";
 
-type InquiryStatus = "new" | "contacted" | "closed";
-
-type FirestoreDate =
-  | {
-      seconds?: number;
-      nanoseconds?: number;
-      toDate?: () => Date;
-    }
-  | Date
-  | string
-  | number
-  | null
-  | undefined;
-
-type Inquiry = {
-  id: string;
-  propertyId?: string;
-  propertyTitle?: string;
-  propertyImage?: string;
-  propertyLocation?: string;
-
-  name?: string;
-  email?: string;
-  phone?: string;
-  message?: string;
-
-  status?: InquiryStatus;
-  createdAt?: FirestoreDate;
-  updatedAt?: FirestoreDate;
-};
-
-function toDate(value: FirestoreDate) {
-  if (!value) return null;
-
-  if (value instanceof Date) return value;
-
-  if (typeof value === "string" || typeof value === "number") {
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-
-  if (typeof value.toDate === "function") {
-    return value.toDate();
-  }
-
-  if (typeof value.seconds === "number") {
-    return new Date(value.seconds * 1000);
-  }
-
-  return null;
-}
-
-function formatDate(value: FirestoreDate) {
+function formatDate(value?: FirestoreDate) {
   const date = toDate(value);
 
   if (!date) return "-";
@@ -98,22 +44,32 @@ function formatDate(value: FirestoreDate) {
 }
 
 function getStatusStyle(status: InquiryStatus) {
-  if (status === "contacted") {
+  if (status === "read") {
     return "bg-blue-50 text-blue-700 ring-blue-100";
+  }
+
+  if (status === "replied") {
+    return "bg-green-50 text-green-700 ring-green-100";
   }
 
   if (status === "closed") {
     return "bg-gray-100 text-gray-600 ring-gray-200";
   }
 
+  if (status === "spam") {
+    return "bg-red-50 text-red-700 ring-red-100";
+  }
+
   return "bg-[var(--color-primary-soft)] text-[var(--color-primary)] ring-[var(--color-primary-soft)]";
 }
 
 function getStatusIcon(status: InquiryStatus) {
-  if (status === "contacted") return <Clock size={15} />;
+  if (status === "read") return <Clock size={15} />;
+  if (status === "replied") return <CheckCircle2 size={15} />;
   if (status === "closed") return <XCircle size={15} />;
+  if (status === "spam") return <XCircle size={15} />;
 
-  return <CheckCircle2 size={15} />;
+  return <MessageCircle size={15} />;
 }
 
 export default function AdminInquiriesPage() {
@@ -131,23 +87,7 @@ export default function AdminInquiriesPage() {
     setLoading(true);
 
     try {
-      const inquiriesQuery = query(
-        collection(db, "inquiries"),
-        orderBy("createdAt", "desc"),
-      );
-
-      const snapshot = await getDocs(inquiriesQuery);
-
-      const data = snapshot.docs.map((item) => {
-        const inquiry = item.data() as Omit<Inquiry, "id">;
-
-        return {
-          id: item.id,
-          status: inquiry.status || "new",
-          ...inquiry,
-        };
-      });
-
+      const data = await getAllInquiries();
       setInquiries(data);
     } catch (error) {
       console.error(error);
@@ -167,14 +107,16 @@ export default function AdminInquiriesPage() {
     }
   }, [authLoading, user, isAdmin]);
 
-  async function updateInquiryStatus(id: string, status: InquiryStatus) {
+  async function handleUpdateInquiryStatus(
+    id: string | undefined,
+    status: InquiryStatus,
+  ) {
+    if (!id) return;
+
     setUpdatingId(id);
 
     try {
-      await updateDoc(doc(db, "inquiries", id), {
-        status,
-        updatedAt: new Date(),
-      });
+      await updateInquiryStatus(id, status);
 
       setInquiries((current) =>
         current.map((item) => (item.id === id ? { ...item, status } : item)),
@@ -187,7 +129,9 @@ export default function AdminInquiriesPage() {
     }
   }
 
-  async function deleteInquiry(id: string) {
+  async function handleDeleteInquiry(id: string | undefined) {
+    if (!id) return;
+
     const confirmed = window.confirm(
       "Are you sure you want to delete this inquiry?",
     );
@@ -197,7 +141,7 @@ export default function AdminInquiriesPage() {
     setUpdatingId(id);
 
     try {
-      await deleteDoc(doc(db, "inquiries", id));
+      await deleteInquiry(id);
 
       setInquiries((current) => current.filter((item) => item.id !== id));
     } catch (error) {
@@ -222,6 +166,7 @@ export default function AdminInquiriesPage() {
         inquiry.message,
         inquiry.propertyTitle,
         inquiry.propertyLocation,
+        inquiry.status,
       ]
         .filter(Boolean)
         .join(" ")
@@ -237,7 +182,8 @@ export default function AdminInquiriesPage() {
     return {
       all: inquiries.length,
       new: inquiries.filter((item) => item.status === "new").length,
-      contacted: inquiries.filter((item) => item.status === "contacted").length,
+      read: inquiries.filter((item) => item.status === "read").length,
+      replied: inquiries.filter((item) => item.status === "replied").length,
       closed: inquiries.filter((item) => item.status === "closed").length,
     };
   }, [inquiries]);
@@ -312,10 +258,11 @@ export default function AdminInquiriesPage() {
         </div>
 
         <div className="bg-[#fffdf9] px-5 py-5 md:px-8 md:py-7">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <StatCard label="All inquiries" value={stats.all} />
             <StatCard label="New" value={stats.new} />
-            <StatCard label="Contacted" value={stats.contacted} />
+            <StatCard label="Read" value={stats.read} />
+            <StatCard label="Replied" value={stats.replied} />
             <StatCard label="Closed" value={stats.closed} />
           </div>
 
@@ -341,8 +288,10 @@ export default function AdminInquiriesPage() {
               >
                 <option value="all">All statuses</option>
                 <option value="new">New</option>
-                <option value="contacted">Contacted</option>
+                <option value="read">Read</option>
+                <option value="replied">Replied</option>
                 <option value="closed">Closed</option>
+                <option value="spam">Spam</option>
               </select>
             </div>
           </div>
@@ -368,8 +317,8 @@ export default function AdminInquiriesPage() {
                   key={inquiry.id}
                   inquiry={inquiry}
                   updating={updatingId === inquiry.id}
-                  onStatusChange={updateInquiryStatus}
-                  onDelete={deleteInquiry}
+                  onStatusChange={handleUpdateInquiryStatus}
+                  onDelete={handleDeleteInquiry}
                 />
               ))
             )}
@@ -400,8 +349,11 @@ function InquiryCard({
 }: {
   inquiry: Inquiry;
   updating: boolean;
-  onStatusChange: (id: string, status: InquiryStatus) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
+  onStatusChange: (
+    id: string | undefined,
+    status: InquiryStatus,
+  ) => Promise<void>;
+  onDelete: (id: string | undefined) => Promise<void>;
 }) {
   const status = inquiry.status || "new";
 
@@ -412,7 +364,7 @@ function InquiryCard({
           <div className="flex items-start justify-between gap-3">
             <div>
               <span
-                className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-black ring-1 ${getStatusStyle(
+                className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-black capitalize ring-1 ${getStatusStyle(
                   status,
                 )}`}
               >
@@ -511,32 +463,35 @@ function InquiryCard({
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
+              <StatusButton
+                label="New"
+                disabled={updating}
                 onClick={() => onStatusChange(inquiry.id, "new")}
-                disabled={updating}
-                className="rounded-full border border-[var(--color-border)] bg-white px-3 py-2 text-xs font-black text-[var(--color-text)] shadow-sm transition hover:bg-[var(--color-primary-soft)] disabled:opacity-50"
-              >
-                New
-              </button>
+              />
 
-              <button
-                type="button"
-                onClick={() => onStatusChange(inquiry.id, "contacted")}
+              <StatusButton
+                label="Read"
                 disabled={updating}
-                className="rounded-full border border-[var(--color-border)] bg-white px-3 py-2 text-xs font-black text-[var(--color-text)] shadow-sm transition hover:bg-blue-50 disabled:opacity-50"
-              >
-                Contacted
-              </button>
+                onClick={() => onStatusChange(inquiry.id, "read")}
+              />
 
-              <button
-                type="button"
+              <StatusButton
+                label="Replied"
+                disabled={updating}
+                onClick={() => onStatusChange(inquiry.id, "replied")}
+              />
+
+              <StatusButton
+                label="Closed"
+                disabled={updating}
                 onClick={() => onStatusChange(inquiry.id, "closed")}
+              />
+
+              <StatusButton
+                label="Spam"
                 disabled={updating}
-                className="rounded-full border border-[var(--color-border)] bg-white px-3 py-2 text-xs font-black text-[var(--color-text)] shadow-sm transition hover:bg-gray-50 disabled:opacity-50"
-              >
-                Closed
-              </button>
+                onClick={() => onStatusChange(inquiry.id, "spam")}
+              />
             </div>
           </div>
 
@@ -570,5 +525,26 @@ function InquiryCard({
         </div>
       </div>
     </article>
+  );
+}
+
+function StatusButton({
+  label,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="rounded-full border border-[var(--color-border)] bg-white px-3 py-2 text-xs font-black text-[var(--color-text)] shadow-sm transition hover:bg-[var(--color-primary-soft)] disabled:opacity-50"
+    >
+      {label}
+    </button>
   );
 }

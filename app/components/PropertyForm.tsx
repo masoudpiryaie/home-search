@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin } from "lucide-react";
-
+import { createPropertySlugFromText } from "@/app/lib/slug";
 import ImageUploader from "@/app/components/ImageUploader";
 import LocationPickerModal from "@/app/components/LocationPickerModal";
 import { useAuth } from "@/app/context/AuthContext";
@@ -42,7 +42,8 @@ const defaultFeatures = {
   fittedKitchen: false,
 };
 
-type PropertyDraft = Omit<Property, "title" | "description"> & {
+type PropertyDraft = Omit<Property, "title" | "description" | "slug"> & {
+  slug?: string;
   title: Property["title"];
   description: Property["description"];
 };
@@ -270,6 +271,31 @@ export default function PropertyForm({
         phone: String(formData.get("contactPhone") || "").trim() || undefined,
       }),
 
+      // createdBy: submitMode === "admin" ? user?.uid : initialData?.createdBy,
+
+      // ownerId:
+      //   submitMode === "admin"
+      //     ? user?.uid
+      //     : user?.uid || initialData?.submittedBy?.uid,
+
+      createdBy: submitMode === "admin" ? user?.uid : initialData?.createdBy,
+
+      ownerId:
+        submitMode === "public" ? user?.uid : initialData?.ownerId || user?.uid,
+
+      agencyId: initialData?.agencyId,
+
+      stats: {
+        views: Number(initialData?.stats?.views || initialData?.viewCount || 0),
+        favorites: Number(initialData?.stats?.favorites || 0),
+        inquiries: Number(initialData?.stats?.inquiries || 0),
+      },
+
+      isFeatured: initialData?.isFeatured || false,
+      featuredUntil: initialData?.featuredUntil,
+      publishedAt: initialData?.publishedAt,
+      expiresAt: initialData?.expiresAt,
+      deletedAt: initialData?.deletedAt,
       submittedBy:
         submitMode === "public"
           ? removeUndefinedValues({
@@ -402,6 +428,18 @@ export default function PropertyForm({
         }
       }
 
+      if (!property.slug) {
+        const englishTitle =
+          typeof property.title === "object" && property.title !== null
+            ? property.title.en || rawTitle
+            : rawTitle;
+
+        property.slug = createPropertySlugFromText({
+          title: englishTitle,
+          city: property.location.city,
+          district: property.location.district,
+        });
+      }
       const validatedProperty = propertySchema.parse(property) as Property;
 
       if (mode === "edit" && propertyId) {

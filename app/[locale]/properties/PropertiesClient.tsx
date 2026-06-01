@@ -20,6 +20,7 @@ import { getLocalizedText } from "@/app/lib/localizedText";
 import { getPublicPropertiesPaginated } from "@/app/lib/propertyService";
 import { getDictionary, type Locale } from "@/app/lib/i18n";
 import type { ListingType, Property, PropertyType } from "@/app/types/property";
+import PropertyImage from "@/app/components/PropertyImage";
 
 type SortOption = "newest" | "lowest-price" | "highest-price" | "largest-area";
 
@@ -681,17 +682,17 @@ function MobilePropertyListItem({
   locale: Locale;
 }) {
   const title = getLocalizedText(property.title, locale);
-  const image = property.images?.[0]?.url;
+  // const image = property.images?.[0]?.url;
   const isRtl = locale === "fa";
 
   return (
     <Link
-      href={`/${locale}/properties/${property.id}`}
+      href={`/${locale}/properties/${property.slug}`}
       dir={isRtl ? "rtl" : "ltr"}
       className="grid grid-cols-[112px_1fr] gap-3 rounded-[22px] border border-[var(--color-border)] bg-white p-2 shadow-[var(--shadow-card)] transition active:scale-[0.99] rtl:grid-cols-[1fr_112px]"
     >
       <div className="h-[104px] w-[104px] overflow-hidden rounded-[18px] bg-gray-100">
-        {image ? (
+        {/* {image ? (
           <img
             src={image}
             alt={title}
@@ -706,7 +707,23 @@ function MobilePropertyListItem({
                 ? "Kein Bild"
                 : "No image"}
           </div>
-        )}
+        )} */}
+        <div className="h-[104px] overflow-hidden rounded-[18px] bg-gray-100">
+          <PropertyImage
+            image={property.images?.[0]}
+            alt={title || "Property image"}
+            size="thumb"
+            loading="lazy"
+            className="h-full w-full object-cover"
+            fallbackText={
+              locale === "fa"
+                ? "بدون عکس"
+                : locale === "de"
+                  ? "Kein Bild"
+                  : "No image"
+            }
+          />
+        </div>
       </div>
 
       <div className="min-w-0 py-1">

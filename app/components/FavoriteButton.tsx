@@ -1,97 +1,178 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Heart } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Heart, Loader2 } from "lucide-react";
 
-import { isFavorite, toggleFavorite } from "../lib/favorites";
-import { type Locale } from "../lib/i18n";
+import { useAuth } from "@/app/context/AuthContext";
+import {
+  addFavorite,
+  isFavorite,
+  removeFavorite,
+} from "@/app/lib/services/favoriteService";
+import type { Locale } from "@/app/lib/i18n";
 
 type FavoriteButtonProps = {
   propertyId?: string;
-  variant?: "icon" | "full";
   locale?: Locale;
+  variant?: "icon" | "full";
 };
+
+function getLabels(locale: Locale = "en") {
+  if (locale === "fa") {
+    return {
+      save: "ذخیره",
+      saved: "ذخیره شد",
+      loginRequired: "برای ذخیره آگهی باید وارد حساب شوید.",
+      error: "امکان ذخیره آگهی وجود ندارد.",
+    };
+  }
+
+  if (locale === "de") {
+    return {
+      save: "Speichern",
+      saved: "Gespeichert",
+      loginRequired: "Bitte melde dich an, um die Anzeige zu speichern.",
+      error: "Anzeige konnte nicht gespeichert werden.",
+    };
+  }
+
+  return {
+    save: "Save",
+    saved: "Saved",
+    loginRequired: "Please log in to save this listing.",
+    error: "Could not save listing.",
+  };
+}
 
 export default function FavoriteButton({
   propertyId,
-  variant = "icon",
   locale = "en",
+  variant = "icon",
 }: FavoriteButtonProps) {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+
+  const labels = getLabels(locale);
+
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [message, setMessage] = useState("");
+
+  const isFull = variant === "full";
 
   useEffect(() => {
-    setSaved(isFavorite(propertyId));
+    async function checkFavoriteStatus() {
+      if (authLoading) return;
 
-    function handleUpdate() {
-      setSaved(isFavorite(propertyId));
+      setMessage("");
+
+      if (!user || !propertyId) {
+        setSaved(false);
+        setChecking(false);
+        return;
+      }
+
+      try {
+        const status = await isFavorite(user.uid, propertyId);
+        setSaved(status);
+      } catch (error) {
+        console.error(error);
+        setSaved(false);
+      } finally {
+        setChecking(false);
+      }
     }
 
-    window.addEventListener("favorites-updated", handleUpdate);
+    checkFavoriteStatus();
+  }, [authLoading, user, propertyId]);
 
-    return () => {
-      window.removeEventListener("favorites-updated", handleUpdate);
-    };
-  }, [propertyId]);
+  async function handleToggleFavorite() {
+    setMessage("");
 
-  function handleClick(event: React.MouseEvent<HTMLButtonElement>) {
-    event.preventDefault();
-    event.stopPropagation();
+    if (!propertyId) return;
 
-    toggleFavorite(propertyId);
-    setSaved(isFavorite(propertyId));
+    if (!user) {
+      setMessage(labels.loginRequired);
+      router.push(`/${locale}/login`);
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      if (saved) {
+        await removeFavorite(user.uid, propertyId);
+        setSaved(false);
+      } else {
+        await addFavorite(user.uid, propertyId);
+        setSaved(true);
+      }
+    } catch (error) {
+      console.error(error);
+      setMessage(labels.error);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  const saveText =
-    locale === "fa"
-      ? "ذخیره آگهی"
-      : locale === "de"
-        ? "Anzeige speichern"
-        : "Save property";
-
-  const savedText =
-    locale === "fa" ? "ذخیره شده" : locale === "de" ? "Gespeichert" : "Saved";
-
-  const addLabel =
-    locale === "fa"
-      ? "ذخیره آگهی"
-      : locale === "de"
-        ? "Anzeige speichern"
-        : "Save property";
-
-  const removeLabel =
-    locale === "fa"
-      ? "حذف از ذخیره‌شده‌ها"
-      : locale === "de"
-        ? "Aus gespeicherten Anzeigen entfernen"
-        : "Remove from saved";
-
-  if (variant === "full") {
+  if (isFull) {
     return (
-      <button
-        type="button"
-        onClick={handleClick}
-        className={`flex items-center justify-center gap-2 rounded-2xl px-5 py-4 text-sm font-bold transition ${
-          saved
-            ? "bg-red-50 text-red-600"
-            : "border border-gray-200 bg-white text-gray-800"
-        }`}
-      >
-        <Heart size={18} fill={saved ? "currentColor" : "none"} />
-        {saved ? savedText : saveText}
-      </button>
+      <div>
+        <button
+          type="button"
+          onClick={handleToggleFavorite}
+          disabled={loading || checking || !propertyId}
+          className={`flex h-14 w-full items-center justify-center gap-2 rounded-[16px] border px-5 text-sm font-black shadow-sm transition disabled:opacity-60 ${
+            saved
+              ? "border-red-100 bg-red-50 text-red-600"
+              : "border-[var(--color-border)] bg-white text-[var(--color-text)] hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-primary)]"
+          }`}
+        >
+          {loading || checking ? (
+            <Loader2 size={18} className="animate-spin" />
+          ) : (
+            <Heart size={18} fill={saved ? "currentColor" : "none"} />
+          )}
+
+          {saved ? labels.saved : labels.save}
+        </button>
+
+        {message && (
+          <p className="mt-2 text-xs font-bold leading-5 text-red-600">
+            {message}
+          </p>
+        )}
+      </div>
     );
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      className={`absolute right-4 top-1 flex h-10 w-10 items-center justify-center rounded-full shadow-sm backdrop-blur-md transition ${
-        saved ? "bg-red-500 text-white" : "bg-white/90 text-gray-800"
-      }`}
-      aria-label={saved ? removeLabel : addLabel}
-    >
-      <Heart size={18} fill={saved ? "currentColor" : "none"} />
-    </button>
+    <div>
+      <button
+        type="button"
+        onClick={handleToggleFavorite}
+        disabled={loading || checking || !propertyId}
+        className={`flex h-11 w-11 items-center justify-center rounded-full shadow-sm ring-1 transition disabled:opacity-60 ${
+          saved
+            ? "bg-red-50 text-red-600 ring-red-100"
+            : "bg-white text-[var(--color-text)] ring-[var(--color-border)] hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-primary)]"
+        }`}
+        aria-label={saved ? labels.saved : labels.save}
+      >
+        {loading || checking ? (
+          <Loader2 size={18} className="animate-spin" />
+        ) : (
+          <Heart size={19} fill={saved ? "currentColor" : "none"} />
+        )}
+      </button>
+
+      {message && (
+        <p className="mt-2 max-w-[180px] text-xs font-bold leading-5 text-red-600">
+          {message}
+        </p>
+      )}
+    </div>
   );
 }

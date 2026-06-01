@@ -20,7 +20,7 @@ import { getDictionary, type Locale } from "@/app/lib/i18n";
 import { useAuth } from "@/app/context/AuthContext";
 import type { Property } from "@/app/types/property";
 import { getLocalizedText } from "@/app/lib/localizedText";
-
+import PropertyImage from "@/app/components/PropertyImage";
 type MyListingsClientProps = {
   locale: Locale;
 };
@@ -75,6 +75,10 @@ export default function MyListingsClient({ locale }: MyListingsClientProps) {
     (item) => item.status === "active",
   ).length;
 
+  const rejectedCount = properties.filter(
+    (item) => item.status === "rejected",
+  ).length;
+
   return (
     <main
       dir={isRtl ? "rtl" : "ltr"}
@@ -112,7 +116,7 @@ export default function MyListingsClient({ locale }: MyListingsClientProps) {
           </div>
 
           <div className="bg-[#fffdf9] px-4 py-5 md:px-6 md:py-6">
-            <section className="mb-6 grid gap-3 sm:grid-cols-3">
+            <section className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard
                 label={labels.total}
                 value={properties.length}
@@ -129,6 +133,12 @@ export default function MyListingsClient({ locale }: MyListingsClientProps) {
                 label={labels.active}
                 value={activeCount}
                 icon={<CheckCircle2 size={22} />}
+              />
+
+              <StatCard
+                label={labels.rejected}
+                value={rejectedCount}
+                icon={<XCircle size={22} />}
               />
             </section>
 
@@ -207,15 +217,21 @@ function MyListingCard({
   property: Property;
   locale: Locale;
 }) {
-  const mainImage = property.images?.[0]?.url;
+  // const mainImage = property.images?.[0]?.url;
   const labels = getLabels(locale);
   const title = getLocalizedText(property.title, locale);
+
+  const editCount = property.editCount || 0;
+  const canEdit = editCount < 2;
+  const publicHref = property.slug
+    ? `/${locale}/properties/${property.slug}`
+    : "";
 
   return (
     <article className="overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-white shadow-[var(--shadow-card)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_48px_rgba(16,24,40,0.12)] md:rounded-[28px]">
       <div className="flex flex-col md:flex-row">
         <div className="relative h-[210px] w-full shrink-0 overflow-hidden bg-gray-100 md:h-auto md:w-52">
-          {mainImage ? (
+          {/* {mainImage ? (
             <img
               src={mainImage}
               alt={title}
@@ -225,8 +241,15 @@ function MyListingCard({
             <div className="flex h-full items-center justify-center px-4 text-center text-xs font-bold text-[var(--color-muted)]">
               {labels.noImage}
             </div>
-          )}
-
+          )} */}
+          <PropertyImage
+            image={property.images?.[0]}
+            alt={title || labels.untitled}
+            size="thumb"
+            loading="lazy"
+            className="h-full w-full object-cover"
+            fallbackText={labels.noImage}
+          />
           <div className="absolute top-3 z-10 ltr:right-3 rtl:left-3 md:hidden">
             <StatusBadge status={property.status} locale={locale} />
           </div>
@@ -236,13 +259,13 @@ function MyListingCard({
           <div className="flex min-w-0 items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <h2 className="line-clamp-2 text-[17px] font-black leading-6 tracking-[-0.02em] text-[var(--color-text)] md:line-clamp-1 md:text-xl md:leading-7">
-                {title}
+                {title || labels.untitled}
               </h2>
 
               <p className="mt-1.5 line-clamp-1 text-xs font-semibold text-[var(--color-muted)] md:text-sm">
-                {property.location?.city}
+                {property.location?.city || "-"}
                 {property.location?.district
-                  ? `, ${property.location.district}`
+                  ? `${locale === "fa" ? "، " : ", "}${property.location.district}`
                   : ""}
               </p>
             </div>
@@ -262,15 +285,15 @@ function MyListingCard({
             </span>
 
             <span className="rounded-full bg-[var(--color-surface-soft)] px-3 py-1.5 ring-1 ring-[var(--color-border)]">
-              {property.details?.area} m²
+              {property.details?.area || "-"} m²
             </span>
 
             <span className="rounded-full bg-[var(--color-surface-soft)] px-3 py-1.5 ring-1 ring-[var(--color-border)]">
-              {property.details?.rooms} {labels.rooms}
+              {property.details?.rooms || "-"} {labels.rooms}
             </span>
 
             <span className="rounded-full bg-[var(--color-primary-soft)] px-3 py-1.5 text-[var(--color-primary)]">
-              {property.price?.toLocaleString("de-DE")} €
+              {property.price?.toLocaleString("de-DE") || "-"} €
             </span>
           </div>
 
@@ -284,16 +307,32 @@ function MyListingCard({
             <div className="mt-3 rounded-[16px] bg-red-50 px-3 py-2 text-[11px] font-bold leading-5 text-red-700 md:mt-4 md:px-4 md:py-3 md:text-xs">
               <p>{labels.rejectedText}</p>
 
-              {property.review?.note && (
-                <p className="mt-1 font-medium">{property.review.note}</p>
+              {property.review?.note ? (
+                <p className="mt-1 font-medium">
+                  {labels.rejectReason}: {property.review.note}
+                </p>
+              ) : (
+                <p className="mt-1 font-medium">{labels.noRejectReason}</p>
               )}
             </div>
           )}
 
+          <div className="mt-3 rounded-[14px] bg-[var(--color-surface-soft)] px-3 py-2 text-[11px] font-bold leading-5 text-[var(--color-muted)] ring-1 ring-[var(--color-border)] md:mt-4 md:text-xs">
+            <p>{labels.editCount(editCount)}</p>
+
+            {canEdit ? (
+              <p className="mt-1 text-[var(--color-primary)]">
+                {labels.editNotice}
+              </p>
+            ) : (
+              <p className="mt-1 text-red-600">{labels.editLimitText}</p>
+            )}
+          </div>
+
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            {property.status === "active" && property.id && (
+            {property.status === "active" && publicHref && (
               <Link
-                href={`/${locale}/properties/${property.id}`}
+                href={publicHref}
                 className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[13px] bg-[var(--color-primary)] px-4 text-[11px] font-black text-white shadow-[var(--shadow-button)] transition hover:bg-[var(--color-primary-dark)] md:h-10 md:gap-2 md:rounded-[15px] md:text-xs"
               >
                 <Eye size={14} />
@@ -301,27 +340,22 @@ function MyListingCard({
               </Link>
             )}
 
-            {property.id && (property.editCount || 0) < 2 && (
+            {property.id && canEdit && (
               <Link
                 href={`/${locale}/my-listings/${property.id}/edit`}
-                className="inline-flex h-9 items-center justify-center rounded-[13px] border border-[var(--color-border)] bg-white px-4 text-[11px] font-black text-[var(--color-text)] shadow-sm transition hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-primary)] md:h-10 md:rounded-[15px] md:text-xs"
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[13px] border border-[var(--color-border)] bg-white px-4 text-[11px] font-black text-[var(--color-text)] shadow-sm transition hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-primary)] md:h-10 md:rounded-[15px] md:text-xs"
               >
-                {locale === "fa"
-                  ? "ویرایش"
-                  : locale === "de"
-                    ? "Bearbeiten"
-                    : "Edit"}
+                <Pencil size={14} />
+                {labels.edit}
               </Link>
             )}
-          </div>
 
-          <p className="mt-3 text-[11px] font-bold text-[var(--color-muted)] md:text-xs">
-            {locale === "fa"
-              ? `تعداد ویرایش: ${property.editCount || 0} از ۲`
-              : locale === "de"
-                ? `Bearbeitet: ${property.editCount || 0} von 2`
-                : `Edited: ${property.editCount || 0} of 2`}
-          </p>
+            {property.id && !canEdit && (
+              <span className="inline-flex h-9 items-center justify-center rounded-[13px] bg-gray-100 px-4 text-[11px] font-black text-gray-500 md:h-10 md:rounded-[15px] md:text-xs">
+                {labels.editLimitReached}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </article>
@@ -452,13 +486,22 @@ function getLabels(locale: Locale) {
       total: "همه",
       pending: "در انتظار بررسی",
       active: "فعال",
+      rejected: "رد شده",
       noListings: "هنوز آگهی‌ای نداری",
       noListingsText: "اولین آگهی خود را ثبت کن تا اینجا نمایش داده شود.",
       noImage: "بدون عکس",
       rooms: "اتاق",
       pendingText: "آگهی شما در انتظار بررسی ادمین است.",
       rejectedText: "آگهی شما رد شده است.",
+      rejectReason: "دلیل رد شدن",
+      noRejectReason: "دلیلی از طرف ادمین ثبت نشده است.",
       viewLive: "مشاهده آگهی فعال",
+      edit: "ویرایش",
+      editLimitReached: "حد ویرایش تمام شده",
+      editNotice: "بعد از ویرایش، آگهی دوباره برای بررسی ارسال می‌شود.",
+      editLimitText: "شما دیگر امکان ویرایش این آگهی را ندارید.",
+      untitled: "بدون عنوان",
+      editCount: (count: number) => `تعداد ویرایش: ${count} از ۲`,
     };
   }
 
@@ -473,13 +516,22 @@ function getLabels(locale: Locale) {
       total: "Gesamt",
       pending: "Wartet",
       active: "Aktiv",
+      rejected: "Abgelehnt",
       noListings: "Du hast noch keine Anzeigen",
       noListingsText: "Gib deine erste Anzeige auf, dann erscheint sie hier.",
       noImage: "Kein Bild",
       rooms: "Zimmer",
       pendingText: "Deine Anzeige wartet auf die Admin-Prüfung.",
       rejectedText: "Deine Anzeige wurde abgelehnt.",
+      rejectReason: "Grund",
+      noRejectReason: "Kein Grund wurde vom Admin angegeben.",
       viewLive: "Live-Anzeige ansehen",
+      edit: "Bearbeiten",
+      editLimitReached: "Limit erreicht",
+      editNotice: "Nach der Bearbeitung wird die Anzeige erneut geprüft.",
+      editLimitText: "Du kannst diese Anzeige nicht mehr bearbeiten.",
+      untitled: "Ohne Titel",
+      editCount: (count: number) => `Bearbeitet: ${count} von 2`,
     };
   }
 
@@ -493,12 +545,21 @@ function getLabels(locale: Locale) {
     total: "Total",
     pending: "Pending",
     active: "Active",
+    rejected: "Rejected",
     noListings: "You have no listings yet",
     noListingsText: "Submit your first property and it will appear here.",
     noImage: "No image",
     rooms: "rooms",
     pendingText: "Your listing is waiting for admin review.",
     rejectedText: "Your listing was rejected.",
+    rejectReason: "Reason",
+    noRejectReason: "No reason was provided by admin.",
     viewLive: "View live listing",
+    edit: "Edit",
+    editLimitReached: "Edit limit reached",
+    editNotice: "After editing, your listing will be sent for review again.",
+    editLimitText: "You cannot edit this listing anymore.",
+    untitled: "Untitled listing",
+    editCount: (count: number) => `Edited: ${count} of 2`,
   };
 }

@@ -14,11 +14,12 @@ import {
 } from "lucide-react";
 
 import { getProperties } from "../lib/propertyService";
-import { getInquiries } from "../lib/inquiryService";
+// import { getInquiries } from "../lib/inquiryService";
 import { AdminListSkeleton } from "../components/Skeletons";
 import type { Property } from "../types/property";
 import type { Inquiry } from "../types/inquiry";
 import { getLocalizedText } from "@/app/lib/localizedText";
+import { getInquiries } from "../lib/inquiryService";
 export default function AdminDashboardPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
@@ -235,7 +236,7 @@ function PropertyRow({ property }: { property: Property }) {
   const title = getLocalizedText(property.title, "en");
   return (
     <Link
-      href={`/admin/properties/${property.id}/edit`}
+      href={`/admin/properties/${property.slug}/edit`}
       className="flex gap-4 rounded-[1.3rem] bg-gray-50 p-3 transition hover:bg-gray-100"
     >
       <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-white">

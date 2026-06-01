@@ -15,12 +15,16 @@ import {
   XCircle,
 } from "lucide-react";
 
+import { getAdminProperties } from "@/app/lib/propertyService";
+import {
+  approveProperty as approvePropertyByAdmin,
+  rejectProperty as rejectPropertyByAdmin,
+  updatePropertyStatusByAdmin,
+} from "@/app/lib/services/adminService";
+
 import LoadingScreen from "@/app/components/LoadingScreen";
 import { useAuth } from "@/app/context/AuthContext";
-import {
-  getAdminProperties,
-  updatePropertyStatus,
-} from "@/app/lib/propertyService";
+
 import { getLocalizedText } from "@/app/lib/localizedText";
 import type { Property } from "@/app/types/property";
 
@@ -117,21 +121,29 @@ export default function AdminPropertiesPage() {
   }, [authLoading, user, isAdmin]);
 
   async function handleApprove(propertyId?: string) {
-    if (!propertyId) return;
+    if (!propertyId || !user) return;
+
+    const property = properties.find((item) => item.id === propertyId);
+
+    if (!property) return;
 
     setUpdatingId(propertyId);
 
     try {
-      await updatePropertyStatus(propertyId, "active", "", user?.uid);
+      await approvePropertyByAdmin(property, user.uid);
 
       setProperties((current) =>
-        current.map((property) =>
-          property.id === propertyId
+        current.map((item) =>
+          item.id === propertyId
             ? {
-                ...property,
+                ...item,
                 status: "active",
+                review: {
+                  ...item.review,
+                  reviewedBy: user.uid,
+                },
               }
-            : property,
+            : item,
         ),
       );
     } catch (error) {
@@ -143,17 +155,12 @@ export default function AdminPropertiesPage() {
   }
 
   async function handleReject() {
-    if (!rejectingProperty?.id) return;
+    if (!rejectingProperty?.id || !user) return;
 
     setUpdatingId(rejectingProperty.id);
 
     try {
-      await updatePropertyStatus(
-        rejectingProperty.id,
-        "rejected",
-        rejectNote,
-        user?.uid,
-      );
+      await rejectPropertyByAdmin(rejectingProperty, user.uid, rejectNote);
 
       setProperties((current) =>
         current.map((property) =>
@@ -163,6 +170,7 @@ export default function AdminPropertiesPage() {
                 status: "rejected",
                 review: {
                   ...property.review,
+                  reviewedBy: user.uid,
                   note: rejectNote,
                 },
               }
@@ -184,21 +192,29 @@ export default function AdminPropertiesPage() {
     propertyId: string | undefined,
     status: Property["status"],
   ) {
-    if (!propertyId) return;
+    if (!propertyId || !user) return;
+
+    const property = properties.find((item) => item.id === propertyId);
+
+    if (!property) return;
 
     setUpdatingId(propertyId);
 
     try {
-      await updatePropertyStatus(propertyId, status, "", user?.uid);
+      await updatePropertyStatusByAdmin({
+        property,
+        adminId: user.uid,
+        status,
+      });
 
       setProperties((current) =>
-        current.map((property) =>
-          property.id === propertyId
+        current.map((item) =>
+          item.id === propertyId
             ? {
-                ...property,
+                ...item,
                 status,
               }
-            : property,
+            : item,
         ),
       );
     } catch (error) {
@@ -595,7 +611,7 @@ function AdminPropertyCard({
 
               {property.id && (
                 <Link
-                  href={`/admin/properties/${property.id}/edit`}
+                  href={`/admin/properties/${property.slug}/edit`}
                   className="inline-flex h-11 items-center gap-2 rounded-[14px] border border-[var(--color-border)] bg-white px-4 text-xs font-black text-[var(--color-text)] shadow-sm"
                 >
                   <Edit size={16} />
@@ -605,7 +621,7 @@ function AdminPropertyCard({
 
               {property.id && property.status === "active" && (
                 <Link
-                  href={`/en/properties/${property.id}`}
+                  href={`/en/properties/${property.slug}`}
                   className="inline-flex h-11 items-center gap-2 rounded-[14px] border border-[var(--color-border)] bg-white px-4 text-xs font-black text-[var(--color-text)] shadow-sm"
                 >
                   <Eye size={16} />

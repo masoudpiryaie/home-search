@@ -9,11 +9,11 @@ const localizedTextSchema = z.union([
 ]);
 export const propertySchema = z.object({
   title: localizedTextSchema,
-
+  // slug: z.string().optional(),
+  slug: z.string().min(3, "Slug is required"),
   description: localizedTextSchema,
 
   originalLanguage: z.enum(["en", "fa", "de"]).optional(),
-
   listingType: z.enum(["rent", "sale"]),
   propertyType: z.enum(["apartment", "house", "studio", "room"]),
   status: z.enum([
@@ -28,6 +28,23 @@ export const propertySchema = z.object({
   createdBy: z.string().optional(),
   createdAt: z.unknown().optional(),
   updatedAt: z.unknown().optional(),
+
+  ownerId: z.string().optional(),
+  agencyId: z.string().optional(),
+
+  stats: z
+    .object({
+      views: z.number(),
+      favorites: z.number(),
+      inquiries: z.number(),
+    })
+    .optional(),
+
+  isFeatured: z.boolean().optional(),
+  featuredUntil: z.unknown().optional(),
+  publishedAt: z.unknown().optional(),
+  expiresAt: z.unknown().optional(),
+  deletedAt: z.unknown().optional(),
 
   editCount: z.number().optional(),
   lastEditedByUserAt: z.unknown().optional(),

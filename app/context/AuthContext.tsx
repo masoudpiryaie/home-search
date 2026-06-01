@@ -16,6 +16,8 @@ import { createContext, useContext, useEffect, useState } from "react";
 
 import { auth, db } from "../lib/firebase";
 
+import { createOrUpdateUserProfile } from "@/app/lib/services/userService";
+
 type AuthContextType = {
   user: User | null;
   isAdmin: boolean;
@@ -49,6 +51,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentUser);
 
         if (currentUser) {
+          await createOrUpdateUserProfile(currentUser);
+
           const adminStatus = await checkIsAdmin(currentUser.uid);
           setIsAdmin(adminStatus);
         } else {
@@ -77,15 +81,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         displayName: name.trim(),
       });
     }
+    await createOrUpdateUserProfile(result.user, {
+      fullName: name.trim(),
+    });
   }
 
   async function loginWithGoogle() {
     const provider = new GoogleAuthProvider();
+
     provider.setCustomParameters({
       prompt: "select_account",
     });
 
-    await signInWithPopup(auth, provider);
+    const result = await signInWithPopup(auth, provider);
+
+    await createOrUpdateUserProfile(result.user);
   }
 
   async function resetPassword(email: string) {

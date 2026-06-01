@@ -198,6 +198,12 @@ export const dictionary = {
       mapSelected: "Map location selected",
       loadingMap: "Loading map...",
     },
+    notification: {
+      title: "Notifications",
+      subtitle: "Manage your notifications",
+      markAllAsRead: "Mark all as read",
+      noNotifications: "No new notifications",
+    },
   },
 
   fa: {
@@ -383,6 +389,12 @@ export const dictionary = {
       currentAddress: "آدرس فعلی",
       mapSelected: "موقعیت روی نقشه انتخاب شده",
       loadingMap: "در حال بارگذاری نقشه...",
+    },
+    notification: {
+      title: "اعلان‌ها",
+      subtitle: "مدیریت اعلان‌های شما",
+      markAllAsRead: "علامت‌گذاری همه به عنوان خوانده شده",
+      noNotifications: "اعلان جدیدی وجود ندارد",
     },
   },
 
@@ -571,6 +583,12 @@ export const dictionary = {
       currentAddress: "Aktuelle Adresse",
       mapSelected: "Standort wurde ausgewählt",
       loadingMap: "Karte wird geladen...",
+    },
+    notification: {
+      title: "Benachrichtigungen",
+      subtitle: "Verwalte deine Benachrichtigungen",
+      markAllAsRead: "Alle als gelesen markieren",
+      noNotifications: "Keine neuen Benachrichtigungen",
     },
   },
 } as const;

@@ -9,8 +9,11 @@ import {
   updateDoc,
 } from "firebase/firestore";
 
-import { db } from "../lib/firebase";
-import type { Inquiry } from "../types/inquiry";
+// import { db } from "../lib/firebase";
+// import type { Inquiry } from "../types/inquiry";
+// import { cleanObject } from "./cleanObject";
+import { Inquiry } from "@/app/types/inquiry";
+import { db } from "./firebase";
 import { cleanObject } from "./cleanObject";
 
 const inquiriesRef = collection(db, "inquiries");
