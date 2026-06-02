@@ -6,6 +6,7 @@ import {
   getDocs,
   increment,
   limit,
+  orderBy,
   query,
   QueryDocumentSnapshot,
   serverTimestamp,
@@ -146,10 +147,16 @@ export async function getPublicPropertiesPaginated({
     ? query(
         propertiesRef,
         ...constraints,
+        orderBy("createdAt", "desc"),
         startAfter(lastDoc),
         limit(pageSize + 1),
       )
-    : query(propertiesRef, ...constraints, limit(pageSize + 1));
+    : query(
+        propertiesRef,
+        ...constraints,
+        orderBy("createdAt", "desc"),
+        limit(pageSize + 1),
+      );
 
   const snapshot = await getDocs(propertiesQuery);
 
@@ -157,7 +164,7 @@ export async function getPublicPropertiesPaginated({
   const visibleDocs = docs.slice(0, pageSize);
 
   return {
-    properties: sortByNewest(visibleDocs.map((item) => mapDoc<Property>(item))),
+    properties: visibleDocs.map((item) => mapDoc<Property>(item)),
     lastDoc:
       visibleDocs.length > 0 ? visibleDocs[visibleDocs.length - 1] : null,
     hasMore: docs.length > pageSize,
