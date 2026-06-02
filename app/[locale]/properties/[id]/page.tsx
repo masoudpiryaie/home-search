@@ -93,7 +93,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const fallbackSeo = getFallbackSeo(typedLocale);
 
   const property = await getPropertySeoBySlug(id);
-
+  console.log(property, "property");
   if (!property) {
     return {
       title:
