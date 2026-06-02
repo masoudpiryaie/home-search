@@ -4,6 +4,12 @@ import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
 function getPrivateKey() {
+  const base64Key = process.env.FIREBASE_ADMIN_PRIVATE_KEY_BASE64;
+
+  if (base64Key) {
+    return Buffer.from(base64Key, "base64").toString("utf8");
+  }
+
   const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
 
   if (!privateKey) {
@@ -22,13 +28,17 @@ export const isFirebaseAdminConfigured = Boolean(
 );
 
 if (!getApps().length && isFirebaseAdminConfigured) {
-  initializeApp({
-    credential: cert({
-      projectId,
-      clientEmail,
-      privateKey,
-    }),
-  });
+  try {
+    initializeApp({
+      credential: cert({
+        projectId,
+        clientEmail,
+        privateKey,
+      }),
+    });
+  } catch (error) {
+    console.error("Firebase Admin initialization failed:", error);
+  }
 }
 
-export const adminDb = isFirebaseAdminConfigured ? getFirestore() : null;
+export const adminDb = getApps().length ? getFirestore() : null;
