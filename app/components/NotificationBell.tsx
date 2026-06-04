@@ -42,7 +42,7 @@ export default function NotificationBell({ locale }: NotificationBellProps) {
   return (
     <Link
       href={`/${locale}/notifications`}
-      className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)] bg-white text-[var(--color-text)] shadow-sm transition hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-primary)]"
+      className="relative flex h-11 w-11 items-center justify-center rounded-full  bg-white text-[var(--color-text)] transition hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-primary)]"
       aria-label={
         locale === "fa"
           ? "اعلان‌ها"

@@ -156,9 +156,9 @@ export default function SavedClient({ locale }: SavedClientProps) {
           <div className="bg-[#fffdf9] px-4 py-5 md:px-6 md:py-6">
             {items.length === 0 ? (
               <div className="rounded-[28px] border border-[var(--color-border)] bg-white p-8 text-center shadow-[var(--shadow-card)]">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[22px] bg-red-50">
+                {/* <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[22px] bg-red-50">
                   <Heart className="text-red-600" size={28} />
-                </div>
+                </div> */}
 
                 <p className="mt-4 text-xl font-black text-[var(--color-text)]">
                   {labels.emptyTitle}

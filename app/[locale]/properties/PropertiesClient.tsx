@@ -316,7 +316,7 @@ export default function PropertiesClient({ locale }: PropertiesClientProps) {
                         : "Rent your next home"}
                 </p>
 
-                <h1 className="mt-4 text-[34px] font-black leading-tight tracking-[-0.04em] md:text-[52px]">
+                <h1 className="mt-4 text-[24px] font-black leading-tight tracking-[-0.04em] md:text-[52px]">
                   {type === "sale"
                     ? t.properties.saleTitle
                     : t.properties.rentTitle}
@@ -329,7 +329,7 @@ export default function PropertiesClient({ locale }: PropertiesClientProps) {
                 </p>
               </div>
 
-              <div className="w-fit rounded-[22px] border border-white/10 bg-white/12 px-5 py-4 backdrop-blur-md">
+              {/* <div className="w-fit rounded-[22px] border border-white/10 bg-white/12 px-5 py-4 backdrop-blur-md">
                 <p className="text-sm font-semibold text-white/65">
                   {t.properties.availableListings}
                 </p>
@@ -337,28 +337,28 @@ export default function PropertiesClient({ locale }: PropertiesClientProps) {
                 <p className="mt-1 text-4xl font-black">
                   {loading ? "..." : filteredProperties.length}
                 </p>
-              </div>
+              </div> */}
             </div>
           </div>
 
           <div className="bg-[#fffdf9] px-4 py-4 md:px-6 md:py-5">
             <section className="sticky top-[92px] z-40 rounded-[24px] border border-[var(--color-border)] bg-white/90 p-3 shadow-[var(--shadow-card)] backdrop-blur-xl md:top-[105px]">
               <div className="flex gap-2">
-                <div className="flex h-[58px] flex-1 items-center gap-2 rounded-[18px] border border-[var(--color-border)] bg-white px-4">
+                <div className="flex h-[48px] flex-1 items-center gap-2 rounded-[18px] border border-[var(--color-border)] bg-white px-4">
                   <Search size={19} className="text-[var(--color-muted)]" />
 
                   <input
                     value={city}
                     onChange={(event) => setCity(event.target.value)}
                     placeholder={t.properties.cityPlaceholder}
-                    className="w-full bg-transparent text-sm font-semibold text-[var(--color-text)] placeholder:text-gray-400"
+                    className="w-full bg-transparent text-xs font-semibold text-[var(--color-text)] placeholder:text-gray-400"
                   />
                 </div>
 
                 <button
                   type="button"
                   onClick={() => setShowMobileFilters((value) => !value)}
-                  className="flex h-[58px] w-[58px] items-center justify-center rounded-[18px] border border-[var(--color-border)] bg-white text-[var(--color-text)] shadow-sm md:hidden"
+                  className="flex h-[48px] w-[48px] items-center justify-center rounded-[18px] border border-[var(--color-border)] bg-white text-[var(--color-text)] shadow-sm md:hidden"
                   aria-label="Filters"
                 >
                   <SlidersHorizontal size={22} />
@@ -412,7 +412,7 @@ export default function PropertiesClient({ locale }: PropertiesClientProps) {
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="flex h-[52px] items-center justify-center gap-2 rounded-[17px] border border-[var(--color-border)] bg-white px-4 text-sm font-black text-[var(--color-text)] shadow-sm transition hover:-translate-y-0.5 hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-primary)]"
+                  className="flex h-[48px] items-center justify-center gap-2 rounded-[17px] border border-[var(--color-border)] bg-white px-4 text-xs font-black text-[var(--color-text)] shadow-sm transition hover:-translate-y-0.5 hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-primary)]"
                 >
                   <RotateCcw size={16} />
                   {t.common.reset}
@@ -537,7 +537,7 @@ export default function PropertiesClient({ locale }: PropertiesClientProps) {
                   </option>
                 </select>
 
-                <ChevronDown size={16} className="text-[var(--color-muted)]" />
+                {/* <ChevronDown size={16} className="text-[var(--color-muted)]" /> */}
               </div>
             </div>
 
@@ -649,7 +649,7 @@ function FilterInput({
       type={type}
       onChange={(event) => onChange(event.target.value)}
       placeholder={placeholder}
-      className="h-[52px] w-full rounded-[17px] border border-[var(--color-border)] bg-white px-4 text-sm font-semibold text-[var(--color-text)] shadow-sm placeholder:text-gray-400"
+      className="h-[48px] w-full rounded-[17px] border border-[var(--color-border)] bg-white px-4 text-xs font-semibold text-[var(--color-text)] shadow-sm placeholder:text-gray-400"
     />
   );
 }
@@ -667,7 +667,7 @@ function FilterSelect({
     <select
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="h-[52px] w-full rounded-[17px] border border-[var(--color-border)] bg-white px-4 text-sm font-black text-[var(--color-text)] shadow-sm"
+      className=" flex justify-between h-[48px] w-full rounded-[17px] border border-[var(--color-border)] bg-white px-4 text-xs font-black text-[var(--color-text)] shadow-sm"
     >
       {children}
     </select>
@@ -689,41 +689,24 @@ function MobilePropertyListItem({
     <Link
       href={`/${locale}/properties/${property.slug}`}
       dir={isRtl ? "rtl" : "ltr"}
-      className="grid grid-cols-[112px_1fr] gap-3 rounded-[22px] border border-[var(--color-border)] bg-white p-2 shadow-[var(--shadow-card)] transition active:scale-[0.99] rtl:grid-cols-[1fr_112px]"
+      className="flex gap-3 rounded-[22px]  border border-[var(--color-border)] bg-white p-2 shadow-[var(--shadow-card)] transition active:scale-[0.99] rtl:grid-cols-[1fr_112px]"
     >
-      <div className="h-[104px] w-[104px] overflow-hidden rounded-[18px] bg-gray-100">
-        {/* {image ? (
-          <img
-            src={image}
-            alt={title}
-            loading="lazy"
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-xs font-bold text-[var(--color-muted)]">
-            {locale === "fa"
+      <div className="h-[104px] w-[104px] shrink-0 overflow-hidden rounded-[18px] bg-gray-100">
+        {" "}
+        <PropertyImage
+          image={property.images?.[0]}
+          alt={title || "Property image"}
+          size="thumb"
+          loading="lazy"
+          className="h-full w-full object-cover"
+          fallbackText={
+            locale === "fa"
               ? "بدون عکس"
               : locale === "de"
                 ? "Kein Bild"
-                : "No image"}
-          </div>
-        )} */}
-        <div className="h-[104px] overflow-hidden rounded-[18px] bg-gray-100">
-          <PropertyImage
-            image={property.images?.[0]}
-            alt={title || "Property image"}
-            size="thumb"
-            loading="lazy"
-            className="h-full w-full object-cover"
-            fallbackText={
-              locale === "fa"
-                ? "بدون عکس"
-                : locale === "de"
-                  ? "Kein Bild"
-                  : "No image"
-            }
-          />
-        </div>
+                : "No image"
+          }
+        />
       </div>
 
       <div className="min-w-0 py-1">

@@ -124,7 +124,7 @@ export default function FavoriteButton({
           type="button"
           onClick={handleToggleFavorite}
           disabled={loading || checking || !propertyId}
-          className={`flex h-14 w-full items-center justify-center gap-2 rounded-[16px] border px-5 text-sm font-black shadow-sm transition disabled:opacity-60 ${
+          className={`flex h-14 w-full items-center justify-center gap-2 rounded-[16px]  px-5 text-sm font-black shadow-sm transition disabled:opacity-60 ${
             saved
               ? "border-red-100 bg-red-50 text-red-600"
               : "border-[var(--color-border)] bg-white text-[var(--color-text)] hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-primary)]"

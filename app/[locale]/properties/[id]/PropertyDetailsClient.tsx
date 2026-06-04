@@ -662,7 +662,7 @@ export default function PropertyDetailsClient({
                   </h2>
                 </div>
 
-                <div className="no-scrollbar -mx-4 overflow-x-auto px-4 pb-3 sm:-mx-0 sm:px-0">
+                <div className="no-scrollbar -mx-4  px-4 pb-3 sm:-mx-0 sm:px-0">
                   {" "}
                   <div className="flex snap-x snap-mandatory gap-4">
                     {similarProperties.map((item) => {
