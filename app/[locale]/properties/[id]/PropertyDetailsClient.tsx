@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -21,6 +21,8 @@ import {
   Sofa,
   Wifi,
   Eye,
+  ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 
 import FavoriteButton from "@/app/components/FavoriteButton";
@@ -38,7 +40,7 @@ import {
   getSimilarProperties,
 } from "@/app/lib/propertyService";
 import type { Property } from "@/app/types/property";
-
+// import { ChevronLeft, ChevronRight } from "lucide-react";
 type PropertyDetailsClientProps = {
   locale: Locale;
   propertyId: string;
@@ -131,6 +133,56 @@ export default function PropertyDetailsClient({
 
     loadProperty();
   }, [propertyId]);
+
+  const similarSliderRef = useRef<HTMLDivElement | null>(null);
+  const [isDraggingSimilar, setIsDraggingSimilar] = useState(false);
+  const [hasDraggedSimilar, setHasDraggedSimilar] = useState(false);
+
+  const similarStartX = useRef(0);
+  const similarScrollLeft = useRef(0);
+
+  const scrollSimilar = (direction: "left" | "right") => {
+    const slider = similarSliderRef.current;
+    if (!slider) return;
+
+    const amount = slider.clientWidth * 0.85;
+
+    slider.scrollBy({
+      left: direction === "left" ? -amount : amount,
+      behavior: "smooth",
+    });
+  };
+
+  const handleSimilarMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    const slider = similarSliderRef.current;
+    if (!slider) return;
+
+    setIsDraggingSimilar(true);
+    setHasDraggedSimilar(false);
+
+    similarStartX.current = e.pageX - slider.offsetLeft;
+    similarScrollLeft.current = slider.scrollLeft;
+  };
+
+  const handleSimilarMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const slider = similarSliderRef.current;
+    if (!slider || !isDraggingSimilar) return;
+
+    e.preventDefault();
+
+    const x = e.pageX - slider.offsetLeft;
+    const walk = (x - similarStartX.current) * 1.2;
+
+    if (Math.abs(walk) > 6) {
+      setHasDraggedSimilar(true);
+    }
+
+    slider.scrollLeft = similarScrollLeft.current - walk;
+  };
+
+  const stopSimilarDragging = () => {
+    setIsDraggingSimilar(false);
+  };
 
   if (loading) {
     return <PropertyDetailsSkeleton />;
@@ -598,142 +650,6 @@ export default function PropertyDetailsClient({
             <div className="mt-6 border-t border-[var(--color-border)] pt-5">
               <ReportPropertyButton property={property} locale={locale} />
             </div>
-
-            {/* {similarProperties.length > 0 && (
-              <section className="mt-6 border-t border-[var(--color-border)] pt-5 md:mt-7 md:pt-6">
-                <h2 className="mb-4 text-start text-[19px] font-black tracking-[-0.02em] text-[var(--color-text)] sm:text-[21px] md:text-[22px]">
-                  {locale === "fa"
-                    ? "آگهی‌های مشابه"
-                    : locale === "de"
-                      ? "Ähnliche Anzeigen"
-                      : "Similar listings"}
-                </h2>
-
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  {similarProperties.map((item) => {
-                    const itemTitle = getLocalizedText(item.title, locale);
-                    const href = item.slug
-                      ? `/${locale}/properties/${item.slug}`
-                      : `/${locale}/properties/${item.id}`;
-
-                    return (
-                      <Link
-                        key={item.id}
-                        href={href}
-                        className="overflow-hidden rounded-[18px] border border-[var(--color-border)] bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]"
-                      >
-                        <div className="h-32 overflow-hidden bg-gray-100">
-                          <PropertyImage
-                            image={item.images?.[0]}
-                            alt={itemTitle || "Property image"}
-                            size="thumb"
-                            loading="lazy"
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
-
-                        <div className="p-3">
-                          <h3 className="line-clamp-2 text-sm font-black leading-5 text-[var(--color-text)]">
-                            {itemTitle}
-                          </h3>
-
-                          <p className="mt-1 text-xs font-bold text-[var(--color-muted)]">
-                            {item.location?.city || "-"}
-                            {item.location?.district
-                              ? `, ${item.location.district}`
-                              : ""}
-                          </p>
-
-                          <p className="mt-2 text-sm font-black text-[var(--color-primary)]">
-                            €{Number(item.price || 0).toLocaleString("de-DE")}
-                          </p>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </section>
-            )} */}
-            {similarProperties.length > 0 && (
-              <section className="mt-8 sm:mt-10">
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <h2 className="text-lg font-black text-[var(--color-text)] sm:text-2xl">
-                    {t.propertyDetails.similarListings}
-                  </h2>
-                </div>
-
-                <div className="no-scrollbar -mx-4  px-4 pb-3 sm:-mx-0 sm:px-0">
-                  {" "}
-                  <div className="flex snap-x snap-mandatory gap-4">
-                    {similarProperties.map((item) => {
-                      const itemTitle = getLocalizedText(item.title, locale);
-                      const itemCity = item.location?.city || "";
-                      const itemDistrict = item.location?.district || "";
-                      const itemImage = item.images?.[0];
-
-                      return (
-                        <Link
-                          key={item.id}
-                          href={`/${locale}/properties/${item.slug || item.id}`}
-                          className="group w-[82%] shrink-0 snap-start overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-card)] shadow-sm transition hover:-translate-y-1 hover:shadow-lg sm:w-[360px] lg:w-[380px]"
-                        >
-                          <div className="relative h-44 overflow-hidden bg-[var(--color-bg-soft)] sm:h-52">
-                            <PropertyImage
-                              image={item.images?.[0]}
-                              alt={itemTitle || "Property image"}
-                              size="thumb"
-                              loading="lazy"
-                              className="h-full w-full object-cover"
-                            />
-
-                            <div className="absolute left-3 top-3 rounded-full bg-black/55 px-3 py-1 text-xs font-bold text-white backdrop-blur-md">
-                              {item.listingType === "rent"
-                                ? t.nav.rent
-                                : t.nav.buy}
-                            </div>
-                          </div>
-
-                          <div className="space-y-3 p-4">
-                            <div>
-                              <h3 className="line-clamp-1 text-base font-black text-[var(--color-text)]">
-                                {itemTitle}
-                              </h3>
-
-                              <p className="mt-1 line-clamp-1 text-sm font-semibold text-[var(--color-muted)]">
-                                {[itemDistrict, itemCity]
-                                  .filter(Boolean)
-                                  .join(", ")}
-                              </p>
-                            </div>
-
-                            <div className="flex items-end justify-between gap-3">
-                              <div className="text-lg font-black text-[var(--color-primary)]">
-                                €
-                                {Number(item.price || 0).toLocaleString(locale)}
-                                {item.listingType === "rent" && (
-                                  <span className="text-xs font-bold text-[var(--color-muted)]">
-                                    {" "}
-                                    / {t.propertyDetails.month}
-                                  </span>
-                                )}
-                              </div>
-
-                              <div className="flex items-center gap-2 text-xs font-bold text-[var(--color-muted)]">
-                                <span>
-                                  {item.details?.rooms || "-"} {t.form.rooms}
-                                </span>
-                                <span>•</span>
-                                <span>{item.details?.area || "-"} m²</span>
-                              </div>
-                            </div>
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              </section>
-            )}
           </div>
 
           <aside className="hidden lg:block">
@@ -755,6 +671,130 @@ export default function PropertyDetailsClient({
               </div>
             </div>
           </aside>
+        </div>
+        <div className="mx-auto mt-6 max-w-[1488px] px-3 sm:px-5 md:px-8">
+          {similarProperties.length > 0 && (
+            <section className="mt-6 border-t border-[var(--color-border)] pt-5 md:mt-7 md:pt-6">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 className="text-start text-[19px] font-black tracking-[-0.02em] text-[var(--color-text)] sm:text-[21px] md:text-[22px]">
+                  {t.propertyDetails.similarListings}
+                </h2>
+
+                <div className="hidden items-center gap-2 md:flex">
+                  <button
+                    type="button"
+                    onClick={() => scrollSimilar("left")}
+                    aria-label="Previous similar property"
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-white text-[var(--color-text)] shadow-sm transition hover:bg-[var(--color-primary-soft)] active:scale-95"
+                  >
+                    {isRtl ? (
+                      <ChevronRight size={20} />
+                    ) : (
+                      <ChevronLeft size={20} />
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => scrollSimilar("right")}
+                    aria-label="Next similar property"
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-white text-[var(--color-text)] shadow-sm transition hover:bg-[var(--color-primary-soft)] active:scale-95"
+                  >
+                    {isRtl ? (
+                      <ChevronLeft size={20} />
+                    ) : (
+                      <ChevronRight size={20} />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="relative">
+                {/* <button
+                  type="button"
+                  onClick={() => scrollSimilar("right")}
+                  aria-label="Next similar property"
+                  className="absolute right-2 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--color-border)] bg-white/90 text-[var(--color-text)] shadow-lg backdrop-blur transition hover:bg-white active:scale-95 lg:flex"
+                >
+                  {isRtl ? (
+                    <ChevronLeft size={22} />
+                  ) : (
+                    <ChevronRight size={22} />
+                  )}
+                </button> */}
+
+                <div
+                  ref={similarSliderRef}
+                  onMouseDown={handleSimilarMouseDown}
+                  onMouseMove={handleSimilarMouseMove}
+                  onMouseUp={stopSimilarDragging}
+                  onMouseLeave={stopSimilarDragging}
+                  className={`no-scrollbar -mx-4 overflow-x-auto px-4 pb-3 sm:-mx-0 sm:px-0 ${
+                    isDraggingSimilar
+                      ? "cursor-grabbing select-none"
+                      : "cursor-grab"
+                  }`}
+                >
+                  <div className="flex snap-x snap-mandatory gap-4">
+                    {similarProperties.map((item) => {
+                      const itemTitle = getLocalizedText(item.title, locale);
+                      const href = item.slug
+                        ? `/${locale}/properties/${item.slug}`
+                        : `/${locale}/properties/${item.id}`;
+
+                      return (
+                        <Link
+                          key={item.id}
+                          href={href}
+                          draggable={false}
+                          onClick={(e) => {
+                            if (hasDraggedSimilar) {
+                              e.preventDefault();
+                            }
+                          }}
+                          className="group w-[82%] shrink-0 snap-start overflow-hidden rounded-[22px] border border-[var(--color-border)] bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)] sm:w-[320px] md:w-[340px] lg:w-[360px]"
+                        >
+                          <div className="h-40 overflow-hidden bg-gray-100 sm:h-44">
+                            <PropertyImage
+                              image={item.images?.[0]}
+                              alt={itemTitle || t.propertyDetails.propertyImage}
+                              size="thumb"
+                              loading="lazy"
+                              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                              fallbackText={t.propertyDetails.noImage}
+                            />
+                          </div>
+
+                          <div className="p-3">
+                            <h3 className="line-clamp-2 text-sm font-black leading-5 text-[var(--color-text)]">
+                              {itemTitle}
+                            </h3>
+
+                            <p className="mt-1 line-clamp-1 text-xs font-bold text-[var(--color-muted)]">
+                              {item.location?.city || "-"}
+                              {item.location?.district
+                                ? `${isRtl ? "، " : ", "}${item.location.district}`
+                                : ""}
+                            </p>
+
+                            <p className="mt-2 text-sm font-black text-[var(--color-primary)]">
+                              €{Number(item.price || 0).toLocaleString("de-DE")}
+                              {item.listingType === "rent" && (
+                                <span className="text-xs font-bold text-[var(--color-muted)]">
+                                  {" "}
+                                  / {t.propertyDetails.month}
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
         </div>
       </section>
 

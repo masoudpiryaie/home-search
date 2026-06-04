@@ -328,16 +328,6 @@ export default function PropertiesClient({ locale }: PropertiesClientProps) {
                     : t.properties.rentSubtitle}
                 </p>
               </div>
-
-              {/* <div className="w-fit rounded-[22px] border border-white/10 bg-white/12 px-5 py-4 backdrop-blur-md">
-                <p className="text-sm font-semibold text-white/65">
-                  {t.properties.availableListings}
-                </p>
-
-                <p className="mt-1 text-4xl font-black">
-                  {loading ? "..." : filteredProperties.length}
-                </p>
-              </div> */}
             </div>
           </div>
 
@@ -480,11 +470,11 @@ export default function PropertiesClient({ locale }: PropertiesClientProps) {
 
             <div className="mb-5 mt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-bold text-[var(--color-muted)]">
+                {/* <p className="text-sm font-bold text-[var(--color-muted)]">
                   {loading
                     ? t.common.loading
                     : `${filteredProperties.length} ${t.properties.propertiesFound}`}
-                </p>
+                </p> */}
 
                 <div className="flex rounded-full border border-[var(--color-border)] bg-white p-1 shadow-sm md:hidden">
                   <button
@@ -684,7 +674,7 @@ function MobilePropertyListItem({
   const title = getLocalizedText(property.title, locale);
   // const image = property.images?.[0]?.url;
   const isRtl = locale === "fa";
-
+  const t = getDictionary(locale);
   return (
     <Link
       href={`/${locale}/properties/${property.slug}`}
@@ -699,13 +689,7 @@ function MobilePropertyListItem({
           size="thumb"
           loading="lazy"
           className="h-full w-full object-cover"
-          fallbackText={
-            locale === "fa"
-              ? "بدون عکس"
-              : locale === "de"
-                ? "Kein Bild"
-                : "No image"
-          }
+          fallbackText={t.propertyDetails.noImage}
         />
       </div>
 
