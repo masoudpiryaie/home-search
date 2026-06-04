@@ -344,7 +344,7 @@ export default function Navbar() {
               )}
             </div>
 
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 overflow-y-auto">
               {!isAdminRoute && (
                 <>
                   <MobileDropdownLink
