@@ -63,7 +63,7 @@ export async function getPropertySeoBySlug(value: string) {
       });
     }
 
-    console.warn("SEO: property not found or not active:", cleanValue);
+    // console.warn("SEO: property not found or not active:", cleanValue);
 
     return null;
   } catch (error) {

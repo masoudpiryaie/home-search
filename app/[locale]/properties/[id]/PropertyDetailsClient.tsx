@@ -148,30 +148,18 @@ export default function PropertyDetailsClient({
           </div>
 
           <h1 className="mt-5 text-xl font-black text-[var(--color-text)] sm:text-2xl">
-            {locale === "fa"
-              ? "آگهی پیدا نشد"
-              : locale === "de"
-                ? "Anzeige nicht gefunden"
-                : "Property not found"}
+            {t.propertyDetails.notFoundTitle}
           </h1>
 
           <p className="mt-2 text-sm font-medium leading-6 text-[var(--color-muted)]">
-            {locale === "fa"
-              ? "این آگهی وجود ندارد یا هنوز تایید نشده است."
-              : locale === "de"
-                ? "Diese Anzeige existiert nicht oder wurde noch nicht freigegeben."
-                : "This property does not exist or is not approved yet."}
+            {t.propertyDetails.notFoundDescription}
           </p>
 
           <Link
             href={`/${locale}/properties?type=rent`}
             className="mt-6 inline-flex rounded-[15px] bg-[var(--color-primary)] px-5 py-3 text-sm font-black text-white shadow-[var(--shadow-button)]"
           >
-            {locale === "fa"
-              ? "بازگشت به آگهی‌ها"
-              : locale === "de"
-                ? "Zurück zu Anzeigen"
-                : "Back to properties"}
+            {t.propertyDetails.backToProperties}
           </Link>
         </div>
       </main>
@@ -215,7 +203,7 @@ export default function PropertyDetailsClient({
                 href={`/${locale}`}
                 className="transition hover:text-[var(--color-primary)]"
               >
-                {locale === "fa" ? "خانه" : locale === "de" ? "Start" : "Home"}
+                {t.nav.home}
               </Link>
 
               <span>{isRtl ? "‹" : "›"}</span>
@@ -224,17 +212,7 @@ export default function PropertyDetailsClient({
                 href={`/${locale}/properties?type=${property.listingType}`}
                 className="transition hover:text-[var(--color-primary)]"
               >
-                {property.listingType === "rent"
-                  ? locale === "fa"
-                    ? "اجاره"
-                    : locale === "de"
-                      ? "Mieten"
-                      : "Rent"
-                  : locale === "fa"
-                    ? "خرید"
-                    : locale === "de"
-                      ? "Kaufen"
-                      : "Buy"}
+                {property.listingType === "rent" ? t.nav.rent : t.nav.buy}
               </Link>
 
               <span>{isRtl ? "‹" : "›"}</span>
@@ -287,13 +265,7 @@ export default function PropertyDetailsClient({
                 size="detail"
                 loading="eager"
                 className="h-[225px] w-full object-cover sm:h-[340px] md:h-[500px]"
-                fallbackText={
-                  locale === "fa"
-                    ? "بدون عکس"
-                    : locale === "de"
-                      ? "Kein Bild"
-                      : "No image"
-                }
+                fallbackText={t.propertyDetails.noImage}
               />
 
               {images.length > 1 && (
@@ -337,11 +309,7 @@ export default function PropertyDetailsClient({
                 }`}
               >
                 <Maximize2 size={18} />
-                {locale === "fa"
-                  ? "مشاهده عکس‌ها"
-                  : locale === "de"
-                    ? "Alle Fotos"
-                    : "View all photos"}
+                {t.propertyDetails.viewAllPhotos}
               </button>
             </div>
 
@@ -389,20 +357,12 @@ export default function PropertyDetailsClient({
 
                   <span className="inline-flex items-center gap-1 rounded-full bg-[#fffdf9] px-2.5 py-1 text-xs font-black text-[var(--color-muted)] ring-1 ring-[var(--color-border)] sm:text-sm">
                     <Eye size={14} />
-                    {locale === "fa"
-                      ? `${views} بازدید`
-                      : locale === "de"
-                        ? `${views} Aufrufe`
-                        : `${views} views`}
+                    {`${views} ${t.propertyDetails.views}`}
                   </span>
 
                   <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-primary-soft)] px-2.5 py-1 text-xs font-black text-[var(--color-primary)] sm:text-sm">
                     <CheckCircle2 size={14} />
-                    {locale === "fa"
-                      ? "معتبر"
-                      : locale === "de"
-                        ? "Geprüft"
-                        : "Verified"}
+                    {t.propertyDetails.verified}
                   </span>
 
                   {postedAgo && (
@@ -417,12 +377,7 @@ export default function PropertyDetailsClient({
                   {property.listingType === "rent" && (
                     <span className="text-sm font-bold text-[var(--color-muted)] sm:text-base">
                       {" "}
-                      /{" "}
-                      {locale === "fa"
-                        ? "ماه"
-                        : locale === "de"
-                          ? "Monat"
-                          : "month"}
+                      / {t.propertyDetails.month}
                     </span>
                   )}
                 </p>
@@ -451,13 +406,7 @@ export default function PropertyDetailsClient({
             <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 md:mt-5 md:flex md:flex-wrap md:gap-3">
               <DetailBox
                 icon={<BedDouble size={18} />}
-                label={
-                  locale === "fa"
-                    ? "اتاق"
-                    : locale === "de"
-                      ? "Zimmer"
-                      : "Rooms"
-                }
+                label={t.form.rooms}
                 value={property.details?.rooms || "-"}
               />
 
@@ -650,7 +599,7 @@ export default function PropertyDetailsClient({
               <ReportPropertyButton property={property} locale={locale} />
             </div>
 
-            {similarProperties.length > 0 && (
+            {/* {similarProperties.length > 0 && (
               <section className="mt-6 border-t border-[var(--color-border)] pt-5 md:mt-7 md:pt-6">
                 <h2 className="mb-4 text-start text-[19px] font-black tracking-[-0.02em] text-[var(--color-text)] sm:text-[21px] md:text-[22px]">
                   {locale === "fa"
@@ -702,6 +651,85 @@ export default function PropertyDetailsClient({
                       </Link>
                     );
                   })}
+                </div>
+              </section>
+            )} */}
+            {similarProperties.length > 0 && (
+              <section className="mt-8 sm:mt-10">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <h2 className="text-lg font-black text-[var(--color-text)] sm:text-2xl">
+                    {t.propertyDetails.similarListings}
+                  </h2>
+                </div>
+
+                <div className="no-scrollbar -mx-4 overflow-x-auto px-4 pb-3 sm:-mx-0 sm:px-0">
+                  {" "}
+                  <div className="flex snap-x snap-mandatory gap-4">
+                    {similarProperties.map((item) => {
+                      const itemTitle = getLocalizedText(item.title, locale);
+                      const itemCity = item.location?.city || "";
+                      const itemDistrict = item.location?.district || "";
+                      const itemImage = item.images?.[0];
+
+                      return (
+                        <Link
+                          key={item.id}
+                          href={`/${locale}/properties/${item.slug || item.id}`}
+                          className="group w-[82%] shrink-0 snap-start overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-card)] shadow-sm transition hover:-translate-y-1 hover:shadow-lg sm:w-[360px] lg:w-[380px]"
+                        >
+                          <div className="relative h-44 overflow-hidden bg-[var(--color-bg-soft)] sm:h-52">
+                            <PropertyImage
+                              src={itemImage}
+                              alt={itemTitle || t.propertyDetails.propertyImage}
+                              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                              fallbackText={t.propertyDetails.noImage}
+                            />
+
+                            <div className="absolute left-3 top-3 rounded-full bg-black/55 px-3 py-1 text-xs font-bold text-white backdrop-blur-md">
+                              {item.listingType === "rent"
+                                ? t.nav.rent
+                                : t.nav.buy}
+                            </div>
+                          </div>
+
+                          <div className="space-y-3 p-4">
+                            <div>
+                              <h3 className="line-clamp-1 text-base font-black text-[var(--color-text)]">
+                                {itemTitle}
+                              </h3>
+
+                              <p className="mt-1 line-clamp-1 text-sm font-semibold text-[var(--color-muted)]">
+                                {[itemDistrict, itemCity]
+                                  .filter(Boolean)
+                                  .join(", ")}
+                              </p>
+                            </div>
+
+                            <div className="flex items-end justify-between gap-3">
+                              <div className="text-lg font-black text-[var(--color-primary)]">
+                                €
+                                {Number(item.price || 0).toLocaleString(locale)}
+                                {item.listingType === "rent" && (
+                                  <span className="text-xs font-bold text-[var(--color-muted)]">
+                                    {" "}
+                                    / {t.propertyDetails.month}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2 text-xs font-bold text-[var(--color-muted)]">
+                                <span>
+                                  {item.details?.rooms || "-"} {t.form.rooms}
+                                </span>
+                                <span>•</span>
+                                <span>{item.details?.area || "-"} m²</span>
+                              </div>
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
                 </div>
               </section>
             )}

@@ -203,7 +203,7 @@ export default function HomeClient({ locale }: HomeClientProps) {
             </div>
           ) : (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {filteredProperties.slice(0, 4).map((property, index) => (
+              {filteredProperties.slice(0, 8).map((property, index) => (
                 <HomeOfferCard
                   key={property.id || index}
                   property={property}

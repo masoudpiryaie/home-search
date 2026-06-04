@@ -91,7 +91,42 @@ export const dictionary = {
       forRent: "For Rent",
       forSale: "For Sale",
     },
+    propertyDetails: {
+      notFoundTitle: "Property not found",
+      notFoundDescription:
+        "This property does not exist or is not approved yet.",
+      backToProperties: "Back to properties",
 
+      propertyImage: "Property image",
+      noImage: "No image",
+      previousImage: "Previous image",
+      nextImage: "Next image",
+      viewAllPhotos: "View all photos",
+
+      views: "views",
+      verified: "Verified",
+      month: "month",
+
+      size: "Size",
+      bath: "Bath",
+      aboutProperty: "About this property",
+      readMore: "Read more",
+      noFeatures: "No special features listed.",
+
+      contactAdvertiser: "Contact agent",
+      contactAdvertiserDescription: "Send a message about this property.",
+      contactAdvisor: "Contact agent",
+      propertyManager: "Property Manager",
+      professionalAgent: "Professional Agent",
+      message: "Message",
+      call: "Call",
+      bookViewing: "Book viewing",
+      bookAViewing: "Book a viewing",
+      sendMessage: "Send message",
+
+      similarListings: "Similar listings",
+      petFriendly: "Pet friendly",
+    },
     form: {
       basicInformation: "Basic Info",
       title: "Title",
@@ -284,7 +319,41 @@ export const dictionary = {
       forRent: "اجاره‌ای",
       forSale: "فروشی",
     },
+    propertyDetails: {
+      notFoundTitle: "آگهی پیدا نشد",
+      notFoundDescription: "این آگهی وجود ندارد یا هنوز تایید نشده است.",
+      backToProperties: "بازگشت به آگهی‌ها",
 
+      propertyImage: "عکس ملک",
+      noImage: "بدون عکس",
+      previousImage: "عکس قبلی",
+      nextImage: "عکس بعدی",
+      viewAllPhotos: "مشاهده عکس‌ها",
+
+      views: "بازدید",
+      verified: "معتبر",
+      month: "ماه",
+
+      size: "متراژ",
+      bath: "حمام",
+      aboutProperty: "درباره این ملک",
+      readMore: "بیشتر بخوانید",
+      noFeatures: "امکانات خاصی ثبت نشده است.",
+
+      contactAdvertiser: "تماس با آگهی‌دهنده",
+      contactAdvertiserDescription: "برای این ملک پیام ارسال کنید.",
+      contactAdvisor: "تماس با مشاور",
+      propertyManager: "مشاور ملک",
+      professionalAgent: "مدیر ملک",
+      message: "پیام",
+      call: "تماس",
+      bookViewing: "رزرو بازدید",
+      bookAViewing: "رزرو بازدید",
+      sendMessage: "ارسال پیام",
+
+      similarListings: "آگهی‌های مشابه",
+      petFriendly: "حیوان خانگی مجاز",
+    },
     form: {
       basicInformation: "مشخصات اصلی",
       title: "عنوان آگهی",
@@ -475,6 +544,42 @@ export const dictionary = {
       largestArea: "Größte Fläche",
       forRent: "Zur Miete",
       forSale: "Zum Kauf",
+    },
+    propertyDetails: {
+      notFoundTitle: "Anzeige nicht gefunden",
+      notFoundDescription:
+        "Diese Anzeige existiert nicht oder wurde noch nicht freigegeben.",
+      backToProperties: "Zurück zu Anzeigen",
+
+      propertyImage: "Immobilienbild",
+      noImage: "Kein Bild",
+      previousImage: "Vorheriges Bild",
+      nextImage: "Nächstes Bild",
+      viewAllPhotos: "Alle Fotos",
+
+      views: "Aufrufe",
+      verified: "Geprüft",
+      month: "Monat",
+
+      size: "Größe",
+      bath: "Bad",
+      aboutProperty: "Über diese Immobilie",
+      readMore: "Mehr lesen",
+      noFeatures: "Keine besonderen Ausstattungen angegeben.",
+
+      contactAdvertiser: "Anbieter kontaktieren",
+      contactAdvertiserDescription: "Sende eine Nachricht zu dieser Immobilie.",
+      contactAdvisor: "Anbieter kontaktieren",
+      propertyManager: "Property Manager",
+      professionalAgent: "Property Manager",
+      message: "Nachricht",
+      call: "Anrufen",
+      bookViewing: "Besichtigung",
+      bookAViewing: "Besichtigung buchen",
+      sendMessage: "Nachricht senden",
+
+      similarListings: "Ähnliche Anzeigen",
+      petFriendly: "Haustiere erlaubt",
     },
 
     form: {
