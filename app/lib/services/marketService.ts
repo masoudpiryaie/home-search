@@ -46,7 +46,7 @@ export async function getMyMarketItems(userId: string) {
 
   const snapshot = await getDocs(marketQuery);
 
-  return sortByNewest(snapshot.docs.map((item) => mapDoc<MarketItem>(item)));
+  // return sortByNewest(snapshot.docs.map((item) => mapDoc<MarketItem>(item)));
 }
 
 export async function updateMarketItemStatus(
