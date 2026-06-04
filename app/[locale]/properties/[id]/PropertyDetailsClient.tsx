@@ -758,7 +758,7 @@ export default function PropertyDetailsClient({
         </div>
       </section>
 
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--color-border)] bg-white/95 px-3 py-2.5 shadow-[0_-12px_35px_rgba(16,24,40,0.10)] backdrop-blur-xl sm:px-4 sm:py-3 lg:hidden">
+      <div className="fixed inset-x-0 bottom-20 z-50 border-t border-[var(--color-border)] bg-white/95 px-3 py-2.5 shadow-[0_-12px_35px_rgba(16,24,40,0.10)] backdrop-blur-xl sm:px-4 sm:py-3 lg:hidden">
         <div className="mx-auto grid max-w-md grid-cols-2 gap-2.5 sm:gap-3">
           {property.contact?.phone ? (
             <a
