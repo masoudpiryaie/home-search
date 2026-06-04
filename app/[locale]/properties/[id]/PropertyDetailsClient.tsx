@@ -679,10 +679,11 @@ export default function PropertyDetailsClient({
                         >
                           <div className="relative h-44 overflow-hidden bg-[var(--color-bg-soft)] sm:h-52">
                             <PropertyImage
-                              src={itemImage}
-                              alt={itemTitle || t.propertyDetails.propertyImage}
-                              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                              fallbackText={t.propertyDetails.noImage}
+                              image={item.images?.[0]}
+                              alt={itemTitle || "Property image"}
+                              size="thumb"
+                              loading="lazy"
+                              className="h-full w-full object-cover"
                             />
 
                             <div className="absolute left-3 top-3 rounded-full bg-black/55 px-3 py-1 text-xs font-bold text-white backdrop-blur-md">
