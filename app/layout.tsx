@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import Navbar from "./components/Navbar";
 import { AuthProvider } from "./context/AuthContext";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import EnableNotificationsModal from "@/app/components/EnableNotificationsModal";
 const persianFont = localFont({
   src: [
     {
@@ -50,6 +51,7 @@ export default function RootLayout({
         <AuthProvider>
           <Navbar />
           {children}
+          <EnableNotificationsModal />
           <Toaster position="top-center" richColors closeButton />
         </AuthProvider>
       </body>

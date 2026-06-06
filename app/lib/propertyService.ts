@@ -120,8 +120,13 @@ export async function getPublicProperties(filters?: PropertyFilters) {
         propertiesRef,
         where("status", "==", "active"),
         where("listingType", "==", filters.listingType),
+        orderBy("createdAt", "desc"),
       )
-    : query(propertiesRef, where("status", "==", "active"));
+    : query(
+        propertiesRef,
+        where("status", "==", "active"),
+        orderBy("createdAt", "desc"),
+      );
 
   const snapshot = await getDocs(publicQuery);
 

@@ -131,7 +131,18 @@ export default function AdminPropertiesPage() {
 
     try {
       await approvePropertyByAdmin(property, user.uid);
+      try {
+        const token = await user.getIdToken(true);
 
+        await fetch(`/api/admin/properties/${propertyId}/notify-approved`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      } catch (notifyError) {
+        console.error("Could not send approve notification:", notifyError);
+      }
       setProperties((current) =>
         current.map((item) =>
           item.id === propertyId
@@ -153,6 +164,55 @@ export default function AdminPropertiesPage() {
       setUpdatingId(null);
     }
   }
+
+  // async function handleApprove(propertyId?: string) {
+  //   if (!propertyId || !user) return;
+
+  //   setUpdatingId(propertyId);
+
+  //   try {
+  //     const token = await user.getIdToken(true);
+
+  //     const response = await fetch(
+  //       `/api/admin/properties/${propertyId}/approve`,
+  //       {
+  //         method: "POST",
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //       },
+  //     );
+
+  //     const result = await response.json().catch(() => null);
+
+  //     if (!response.ok) {
+  //       console.error("Approve API failed:", {
+  //         status: response.status,
+  //         result,
+  //       });
+
+  //       throw new Error(result?.error || "Could not approve property.");
+  //     }
+
+  //     setProperties((current) =>
+  //       current.map((item) =>
+  //         item.id === propertyId
+  //           ? {
+  //               ...item,
+  //               status: "active",
+  //             }
+  //           : item,
+  //       ),
+  //     );
+  //   } catch (error) {
+  //     console.error(error);
+  //     alert(
+  //       error instanceof Error ? error.message : "امکان تایید آگهی وجود ندارد.",
+  //     );
+  //   } finally {
+  //     setUpdatingId(null);
+  //   }
+  // }
 
   async function handleReject() {
     if (!rejectingProperty?.id || !user) return;
