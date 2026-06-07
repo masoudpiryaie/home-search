@@ -218,6 +218,16 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+match /pushTokens/{tokenId} {
+  allow create, update: if request.auth != null
+    && request.resource.data.userId == request.auth.uid;
+
+  allow read, delete: if request.auth != null
+    && resource.data.userId == request.auth.uid;
+
+  allow list: if false;
+}
+
     match /marketItems/{itemId} {
   allow read: if resource.data.status == "active" || isAdmin();
 
@@ -233,4 +243,5 @@ service cloud.firestore {
   allow delete: if isAdmin();
 }
   }
+  
 }

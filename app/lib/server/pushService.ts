@@ -29,7 +29,25 @@ export async function sendPushToUser({
 
   if (tokens.length === 0) return;
 
-  await getMessaging().sendEachForMulticast({
+  // await getMessaging().sendEachForMulticast({
+  //   tokens,
+  //   notification: {
+  //     title,
+  //     body,
+  //   },
+  //   webpush: {
+  //     fcmOptions: {
+  //       link: url || "https://www.andormera.com/fa",
+  //     },
+  //     notification: {
+  //       icon: "/logo/andormera_256.png",
+  //     },
+  //   },
+  //   data: {
+  //     url: url || "/fa",
+  //   },
+  // });
+  const result = await getMessaging().sendEachForMulticast({
     tokens,
     notification: {
       title,
@@ -46,5 +64,14 @@ export async function sendPushToUser({
     data: {
       url: url || "/fa",
     },
+  });
+
+  console.log("Push result:", {
+    successCount: result.successCount,
+    failureCount: result.failureCount,
+    responses: result.responses.map((item) => ({
+      success: item.success,
+      error: item.error?.message,
+    })),
   });
 }

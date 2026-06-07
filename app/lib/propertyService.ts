@@ -33,12 +33,38 @@ export type PaginatedPropertiesResult = {
   hasMore: boolean;
 };
 
-function ensurePropertyDefaults(property: Property) {
+// function ensurePropertyDefaults(property: Property) {
+//   const stats = property.stats || {
+//     views: property.viewCount || 0,
+//     favorites: 0,
+//     inquiries: 0,
+//   };
+//   return cleanObject({
+//     ...property,
+
+//     slug: property.slug || createPropertySlug(property),
+
+//     currency: property.currency || "EUR",
+
+//     stats: {
+//       views: Number(stats.views || property.viewCount || 0),
+//       favorites: Number(stats.favorites || 0),
+//       inquiries: Number(stats.inquiries || 0),
+//     },
+
+//     viewCount: property.viewCount || property.stats?.views || 0,
+
+//     isFeatured: property.isFeatured || false,
+//   });
+// }
+
+function ensurePropertyCreateDefaults(property: Property) {
   const stats = property.stats || {
     views: property.viewCount || 0,
     favorites: 0,
     inquiries: 0,
   };
+
   return cleanObject({
     ...property,
 
@@ -52,7 +78,34 @@ function ensurePropertyDefaults(property: Property) {
       inquiries: Number(stats.inquiries || 0),
     },
 
-    viewCount: property.viewCount || property.stats?.views || 0,
+    viewCount: Number(property.viewCount || stats.views || 0),
+
+    isFeatured: property.isFeatured || false,
+  });
+}
+
+function ensurePropertyUpdateDefaults(property: Property) {
+  const stats = property.stats || {
+    views: property.viewCount || 0,
+    favorites: 0,
+    inquiries: 0,
+  };
+
+  return cleanObject({
+    ...property,
+
+    // خیلی مهم: در update دیگر slug جدید نمی‌سازیم
+    slug: property.slug,
+
+    currency: property.currency || "EUR",
+
+    stats: {
+      views: Number(stats.views || property.viewCount || 0),
+      favorites: Number(stats.favorites || 0),
+      inquiries: Number(stats.inquiries || 0),
+    },
+
+    viewCount: Number(property.viewCount || stats.views || 0),
 
     isFeatured: property.isFeatured || false,
   });
@@ -61,7 +114,7 @@ function ensurePropertyDefaults(property: Property) {
 export async function createProperty(property: Property) {
   const docRef = doc(propertiesRef);
 
-  const propertyWithDefaults = ensurePropertyDefaults({
+  const propertyWithDefaults = ensurePropertyCreateDefaults({
     ...property,
     id: docRef.id,
     createdAt: serverTimestamp(),
@@ -255,10 +308,18 @@ export async function getPublicPropertyByIdOrSlug(value: string) {
 }
 
 export async function updateProperty(id: string, property: Property) {
-  const cleanProperty = cleanObject({
+  const existing = await getPropertyById(id);
+
+  if (!existing) {
+    throw new Error("Property not found.");
+  }
+
+  const cleanProperty = ensurePropertyUpdateDefaults({
     ...property,
+    slug: existing.slug || property.slug,
+    createdAt: existing.createdAt || property.createdAt,
     updatedAt: serverTimestamp(),
-  });
+  } as Property);
 
   await updateDoc(doc(db, "properties", id), cleanProperty);
 }
@@ -268,13 +329,21 @@ export async function updateUserProperty(
   property: Property,
   nextEditCount: number,
 ) {
-  const cleanProperty = cleanObject({
+  const existing = await getPropertyById(id);
+
+  if (!existing) {
+    throw new Error("Property not found.");
+  }
+
+  const cleanProperty = ensurePropertyUpdateDefaults({
     ...property,
+    slug: existing.slug || property.slug,
+    createdAt: existing.createdAt || property.createdAt,
     status: "pending",
     editCount: nextEditCount,
     lastEditedByUserAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-  });
+  } as Property);
 
   await updateDoc(doc(db, "properties", id), cleanProperty);
 }

@@ -218,6 +218,7 @@ export default function PropertyForm({
     const property: PropertyDraft = {
       title: rawTitle,
       description: rawDescription,
+      slug: mode === "edit" ? initialData?.slug : undefined,
       originalLanguage: sourceLanguage,
 
       listingType: selectedListingType,
@@ -428,7 +429,23 @@ export default function PropertyForm({
         }
       }
 
-      if (!property.slug) {
+      // if (!property.slug) {
+      //   const englishTitle =
+      //     typeof property.title === "object" && property.title !== null
+      //       ? property.title.en || rawTitle
+      //       : rawTitle;
+
+      //   property.slug = createPropertySlugFromText({
+      //     title: englishTitle,
+      //     city: property.location.city,
+      //     district: property.location.district,
+      //   });
+      // }
+      if (mode === "edit") {
+        property.slug = initialData?.slug;
+      }
+
+      if (mode === "create" && !property.slug) {
         const englishTitle =
           typeof property.title === "object" && property.title !== null
             ? property.title.en || rawTitle

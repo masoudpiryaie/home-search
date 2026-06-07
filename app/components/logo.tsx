@@ -25,6 +25,7 @@ export default function Logo({
           height={64}
           src="/logo/andormera_256.png"
           alt="HomeRent Logo"
+          loading="eager"
           className=" object-contain "
         />
       </div>

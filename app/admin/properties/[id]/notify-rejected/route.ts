@@ -66,6 +66,9 @@ export async function POST(request: Request, { params }: Props) {
       return NextResponse.json({ error: "Forbidden." }, { status: 403 });
     }
 
+    const body = await request.json().catch(() => ({}));
+    const note = String(body.note || "").trim();
+
     const propertySnap = await adminDb.collection("properties").doc(id).get();
 
     if (!propertySnap.exists) {
@@ -77,9 +80,9 @@ export async function POST(request: Request, { params }: Props) {
 
     const property = propertySnap.data();
 
-    if (property?.status !== "active") {
+    if (property?.status !== "rejected") {
       return NextResponse.json(
-        { error: "Property is not active." },
+        { error: "Property is not rejected." },
         { status: 400 },
       );
     }
@@ -94,19 +97,24 @@ export async function POST(request: Request, { params }: Props) {
       property?.submittedBy?.email || property?.contact?.email || "";
 
     const propertyTitle = getPropertyTitle(property?.title);
-    const propertySlug = property?.slug || id;
-    const propertyUrl = `${getBaseUrl()}/fa/properties/${propertySlug}`;
+    const dashboardUrl = `${getBaseUrl()}/fa/my-listings`;
+
+    const rejectionNote =
+      note ||
+      property?.review?.note ||
+      property?.moderation?.rejectionReason ||
+      "دلیل مشخصی ثبت نشده است.";
 
     if (ownerId) {
       await adminDb.collection("notifications").add({
         userId: ownerId,
-        type: "listing_approved",
-        title: "آگهی شما تایید شد",
-        body: `آگهی «${propertyTitle}» تایید و منتشر شد.`,
+        type: "listing_rejected",
+        title: "آگهی شما رد شد",
+        body: `آگهی «${propertyTitle}» رد شد.`,
         data: {
           propertyId: id,
-          propertySlug,
-          url: propertyUrl,
+          url: dashboardUrl,
+          note: rejectionNote,
         },
         isRead: false,
         createdAt: FieldValue.serverTimestamp(),
@@ -115,12 +123,12 @@ export async function POST(request: Request, { params }: Props) {
       try {
         await sendPushToUser({
           userId: ownerId,
-          title: "آگهی شما تایید شد",
-          body: `آگهی «${propertyTitle}» منتشر شد.`,
-          url: propertyUrl,
+          title: "آگهی شما رد شد",
+          body: `آگهی «${propertyTitle}» نیاز به اصلاح دارد.`,
+          url: dashboardUrl,
         });
       } catch (error) {
-        console.error("Approved push failed:", error);
+        console.error("Rejected push failed:", error);
       }
     }
 
@@ -128,31 +136,33 @@ export async function POST(request: Request, { params }: Props) {
       try {
         await sendEmail({
           to: ownerEmail,
-          subject: "آگهی شما در Andormera تایید شد",
-          text: `آگهی شما با عنوان «${propertyTitle}» تایید و منتشر شد.\n\nمشاهده آگهی:\n${propertyUrl}`,
+          subject: "آگهی شما در Andormera رد شد",
+          text: `آگهی شما با عنوان «${propertyTitle}» رد شد.\n\nدلیل:\n${rejectionNote}\n\nبرای مشاهده آگهی‌های خود:\n${dashboardUrl}`,
           html: `
             <div style="font-family:Arial,sans-serif;line-height:1.7;direction:rtl;text-align:right">
-              <h2>آگهی شما تایید شد</h2>
-              <p>آگهی شما با عنوان <strong>${propertyTitle}</strong> تایید و منتشر شد.</p>
+              <h2>آگهی شما رد شد</h2>
+              <p>آگهی شما با عنوان <strong>${propertyTitle}</strong> رد شد.</p>
+              <p><strong>دلیل:</strong></p>
+              <p style="background:#fff3f3;padding:12px;border-radius:10px">${rejectionNote}</p>
               <p>
-                <a href="${propertyUrl}" style="display:inline-block;padding:12px 18px;background:#111;color:#fff;text-decoration:none;border-radius:10px">
-                  مشاهده آگهی
+                <a href="${dashboardUrl}" style="display:inline-block;padding:12px 18px;background:#111;color:#fff;text-decoration:none;border-radius:10px">
+                  مشاهده آگهی‌های من
                 </a>
               </p>
             </div>
           `,
         });
       } catch (error) {
-        console.error("Approved email failed:", error);
+        console.error("Rejected email failed:", error);
       }
     }
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error("Notify approved API error:", error);
+    console.error("Notify rejected API error:", error);
 
     return NextResponse.json(
-      { error: "Could not send approved notification." },
+      { error: "Could not send rejected notification." },
       { status: 500 },
     );
   }

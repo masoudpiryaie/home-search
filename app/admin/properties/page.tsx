@@ -120,6 +120,31 @@ export default function AdminPropertiesPage() {
     }
   }, [authLoading, user, isAdmin]);
 
+  async function notifyPropertyReview(
+    propertyId: string,
+    type: "approved" | "rejected",
+    note?: string,
+  ) {
+    if (!user) return;
+
+    try {
+      const token = await user.getIdToken(true);
+
+      await fetch(`/api/admin/properties/${propertyId}/notify-${type}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          note: note || "",
+        }),
+      });
+    } catch (error) {
+      console.error(`Could not send ${type} notification:`, error);
+    }
+  }
+
   async function handleApprove(propertyId?: string) {
     if (!propertyId || !user) return;
 
@@ -131,18 +156,7 @@ export default function AdminPropertiesPage() {
 
     try {
       await approvePropertyByAdmin(property, user.uid);
-      try {
-        const token = await user.getIdToken(true);
-
-        await fetch(`/api/admin/properties/${propertyId}/notify-approved`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-      } catch (notifyError) {
-        console.error("Could not send approve notification:", notifyError);
-      }
+      await notifyPropertyReview(propertyId, "approved");
       setProperties((current) =>
         current.map((item) =>
           item.id === propertyId
@@ -214,13 +228,14 @@ export default function AdminPropertiesPage() {
   //   }
   // }
 
-  async function handleReject() {
+  async function handleReject(propertyId?: string) {
     if (!rejectingProperty?.id || !user) return;
 
     setUpdatingId(rejectingProperty.id);
 
     try {
       await rejectPropertyByAdmin(rejectingProperty, user.uid, rejectNote);
+      await notifyPropertyReview(rejectingProperty?.id, "rejected", rejectNote);
 
       setProperties((current) =>
         current.map((property) =>

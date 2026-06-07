@@ -468,7 +468,31 @@ export default function PropertiesClient({ locale }: PropertiesClientProps) {
               )}
             </section>
 
-            <div className="mb-5 mt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="mb-5 mt-6 flex justify-between  gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex h-11 items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-3 shadow-sm md:w-fit">
+                <Building2 size={16} className="text-[var(--color-muted)]" />
+
+                <select
+                  value={sort}
+                  onChange={(event) =>
+                    setSort(event.target.value as SortOption)
+                  }
+                  className="bg-transparent text-sm font-black text-[var(--color-text)]"
+                >
+                  <option value="newest">{t.properties.newest}</option>
+                  <option value="lowest-price">
+                    {t.properties.lowestPrice}
+                  </option>
+                  <option value="highest-price">
+                    {t.properties.highestPrice}
+                  </option>
+                  <option value="largest-area">
+                    {t.properties.largestArea}
+                  </option>
+                </select>
+
+                {/* <ChevronDown size={16} className="text-[var(--color-muted)]" /> */}
+              </div>
               <div className="flex items-center justify-between gap-3">
                 {/* <p className="text-sm font-bold text-[var(--color-muted)]">
                   {loading
@@ -476,7 +500,7 @@ export default function PropertiesClient({ locale }: PropertiesClientProps) {
                     : `${filteredProperties.length} ${t.properties.propertiesFound}`}
                 </p> */}
 
-                <div className="flex rounded-full border border-[var(--color-border)] bg-white p-1 shadow-sm md:hidden">
+                <div className="flex  rounded-full border border-[var(--color-border)] bg-white p-1 shadow-sm md:hidden">
                   <button
                     type="button"
                     onClick={() => setMobileViewMode("card")}
@@ -503,31 +527,6 @@ export default function PropertiesClient({ locale }: PropertiesClientProps) {
                     <List size={19} />
                   </button>
                 </div>
-              </div>
-
-              <div className="flex h-11 items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-3 shadow-sm md:w-fit">
-                <Building2 size={16} className="text-[var(--color-muted)]" />
-
-                <select
-                  value={sort}
-                  onChange={(event) =>
-                    setSort(event.target.value as SortOption)
-                  }
-                  className="bg-transparent text-sm font-black text-[var(--color-text)]"
-                >
-                  <option value="newest">{t.properties.newest}</option>
-                  <option value="lowest-price">
-                    {t.properties.lowestPrice}
-                  </option>
-                  <option value="highest-price">
-                    {t.properties.highestPrice}
-                  </option>
-                  <option value="largest-area">
-                    {t.properties.largestArea}
-                  </option>
-                </select>
-
-                {/* <ChevronDown size={16} className="text-[var(--color-muted)]" /> */}
               </div>
             </div>
 
