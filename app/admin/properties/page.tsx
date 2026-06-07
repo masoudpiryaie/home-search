@@ -228,7 +228,7 @@ export default function AdminPropertiesPage() {
   //   }
   // }
 
-  async function handleReject(propertyId?: string) {
+  async function handleReject() {
     if (!rejectingProperty?.id || !user) return;
 
     setUpdatingId(rejectingProperty.id);
