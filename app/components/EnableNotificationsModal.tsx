@@ -48,11 +48,11 @@ export default function EnableNotificationsModal() {
         localStorage.setItem("notification-modal-dismissed", "true");
         setOpen(false);
       } else {
-        alert("امکان فعال‌سازی نوتیفیکیشن وجود ندارد.");
+        // alert("امکان فعال‌سازی نوتیفیکیشن وجود ندارد.");
       }
     } catch (error) {
       console.error(error);
-      alert("فعال‌سازی نوتیفیکیشن انجام نشد.");
+      // alert("فعال‌سازی نوتیفیکیشن انجام نشد.");
     } finally {
       setSaving(false);
     }
