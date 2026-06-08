@@ -52,7 +52,7 @@ export default function RootLayout({
         <AuthProvider>
           <Navbar />
           {children}
-          <EnableNotificationsModal />
+          {/* <EnableNotificationsModal /> */}
           <PushNotificationListener />
           <Toaster position="top-center" richColors closeButton />
         </AuthProvider>
