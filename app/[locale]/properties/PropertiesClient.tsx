@@ -118,6 +118,7 @@ export default function PropertiesClient({ locale }: PropertiesClientProps) {
 
     const params = new URLSearchParams();
     params.set("type", type || "rent");
+    // params.set("sort", "newest");   // ← این خط اضافه بشه
 
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }
@@ -214,6 +215,21 @@ export default function PropertiesClient({ locale }: PropertiesClientProps) {
 
   const filteredProperties = useMemo(() => {
     let result = [...properties];
+
+    if (sort === "newest") {
+      result.sort((a, b) => {
+        const getTime = (date: typeof a.updatedAt): number => {
+          if (!date) return 0;
+          if (typeof date === "number") return date;
+          if (typeof date === "string") return new Date(date).getTime();
+          if (date instanceof Date) return date.getTime();
+          if ("seconds" in date && typeof date.seconds === "number")
+            return date.seconds * 1000;
+          return 0;
+        };
+        return getTime(b.updatedAt) - getTime(a.updatedAt);
+      });
+    }
 
     if (city.trim()) {
       const value = city.toLowerCase().trim();
